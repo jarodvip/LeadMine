@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: leadmine_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: leadmine_root
+      MYSQL_DATABASE: leadmine
+      MYSQL_USER: leadmine
+      MYSQL_PASSWORD: leadmine123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - leadmine
+
+  redis:
+    image: redis:7-alpine
+    container_name: leadmine_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - leadmine
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: leadmine_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql+pymysql://leadmine:leadmine123@mysql:3306/leadmine
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+    networks:
+      - leadmine
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  leadmine:
+    name: leadmine_network

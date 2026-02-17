@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadMine - 线索管理</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #1A1A1A;
+            --color-primary-dark: #000000;
+            --color-secondary: #666666;
+            --color-border: #E5E5E5;
+            --color-bg: #FFFFFF;
+            --color-bg-alt: #F9F9F9;
+            --color-hover: #F5F5F5;
+            --color-emphasis: #333333;
+            --color-success: #52C41A;
+            --color-warning: #FAAD14;
+            --color-error: #FF4D4F;
+            --color-financing: #1890FF;
+            --color-acquisition: #722ED1;
+            --color-product: #13C2C2;
+            --color-expansion: #FA8C16;
+            --color-procurement: #EB2F96;
+            --color-executive: #2F54EB;
+            --color-policy: #A0D911;
+            --sidebar-width: 220px;
+            --header-height: 60px;
+            --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--color-bg-alt);
+            color: var(--color-primary);
+            min-height: 100vh;
+        }
+
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--color-bg);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: var(--color-primary);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--color-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: var(--color-hover);
+            color: var(--color-primary);
+        }
+
+        .nav-item.active {
+            background: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: var(--color-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            height: var(--header-height);
+            background: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--color-secondary);
+        }
+
+        .breadcrumb-current {
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            width: 280px;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .search-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--color-secondary);
+        }
+
+        .page-content {
+            flex: 1;
+            padding: 24px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .btn-outline {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--color-hover);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* 筛选栏 */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-bg);
+            min-width: 120px;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            min-width: 160px;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .filter-date {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+        }
+
+        /* 表格 */
+        .table-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--color-bg-alt);
+        }
+
+        th {
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        td {
+            padding: 16px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--color-border);
+            vertical-align: middle;
+        }
+
+        tbody tr {
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: var(--color-hover);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .company-name {
+            font-weight: 500;
+            color: var(--color-primary);
+        }
+
+        .event-detail {
+            color: var(--color-secondary);
+            font-size: 13px;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .type-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .type-tag.financing {
+            background: rgba(24, 144, 255, 0.1);
+            color: var(--color-financing);
+        }
+
+        .type-tag.acquisition {
+            background: rgba(114, 46, 209, 0.1);
+            color: var(--color-acquisition);
+        }
+
+        .type-tag.product {
+            background: rgba(19, 194, 194, 0.1);
+            color: var(--color-product);
+        }
+
+        .type-tag.expansion {
+            background: rgba(250, 140, 22, 0.1);
+            color: var(--color-expansion);
+        }
+
+        .type-tag.procurement {
+            background: rgba(235, 47, 150, 0.1);
+            color: var(--color-procurement);
+        }
+
+        .type-tag.executive {
+            background: rgba(47, 84, 235, 0.1);
+            color: var(--color-executive);
+        }
+
+        .type-tag.policy {
+            background: rgba(160, 217, 17, 0.15);
+            color: #7CB10C;
+        }
+
+        .source-name {
+            color: var(--color-secondary);
+        }
+
+        .confidence-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .confidence-track {
+            width: 60px;
+            height: 6px;
+            background: var(--color-border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--color-success);
+        }
+
+        .confidence-fill.high {
+            background: var(--color-success);
+        }
+
+        .confidence-fill.medium {
+            background: var(--color-warning);
+        }
+
+        .confidence-fill.low {
+            background: var(--color-error);
+        }
+
+        .confidence-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .status-tag.new {
+            background: rgba(24, 144, 255, 0.1);
+            color: var(--color-financing);
+        }
+
+        .status-tag.contacted {
+            background: rgba(250, 140, 22, 0.1);
+            color: var(--color-expansion);
+        }
+
+        .status-tag.converted {
+            background: rgba(82, 196, 26, 0.1);
+            color: var(--color-success);
+        }
+
+        .status-tag.invalid {
+            background: rgba(102, 102, 102, 0.1);
+            color: var(--color-secondary);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--color-secondary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--color-hover);
+            color: var(--color-primary);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: var(--color-secondary);
+        }
+
+        .pagination-btns {
+            display: flex;
+            gap: 4px;
+        }
+
+        .page-btn {
+            padding: 6px 12px;
+            font-size: 14px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--color-hover);
+            border-color: var(--color-primary);
+        }
+
+        .page-btn.active {
+            background: var(--color-primary);
+            color: var(--color-bg);
+            border-color: var(--color-primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 1200px) {
+            .filter-bar {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="28" cy="28" r="8" fill="#1A1A1A"/>
+                            <circle cx="10" cy="10" r="5" fill="#1A1A1A"/>
+                            <circle cx="46" cy="10" r="4" fill="#666666"/>
+                            <circle cx="8" cy="40" r="4" fill="#666666"/>
+                            <circle cx="48" cy="42" r="5" fill="#1A1A1A"/>
+                            <line x1="15" y1="13" x2="23" y2="23" stroke="#1A1A1A" stroke-width="1.5"/>
+                            <line x1="38" y1="13" x2="32" y2="22" stroke="#666666" stroke-width="1.5"/>
+                            <line x1="12" y1="37" x2="23" y2="31" stroke="#666666" stroke-width="1.5"/>
+                            <line x1="42" y1="39" x2="33" y2="32" stroke="#1A1A1A" stroke-width="1.5"/>
+                            <line x1="13" y1="14" x2="11" y2="37" stroke="#E5E5E5" stroke-width="1"/>
+                            <line x1="43" y1="12" x2="46" y2="39" stroke="#E5E5E5" stroke-width="1"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">LEADMINE</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>仪表盘</span>
+                </a>
+                <a class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span>线索管理</span>
+                </a>
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>文章列表</span>
+                </a>
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>数据源配置</span>
+                </a>
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">J</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <span class="breadcrumb">首页 / <span class="breadcrumb-current">线索管理</span></span>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" placeholder="搜索线索...">
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">线索管理</h1>
+                </div>
+
+                <!-- 筛选栏 -->
+                <div class="filter-bar">
+                    <select class="filter-select">
+                        <option value="">全部状态</option>
+                        <option value="new">新增</option>
+                        <option value="contacted">已联系</option>
+                        <option value="converted">已转化</option>
+                        <option value="invalid">无效</option>
+                    </select>
+                    <select class="filter-select">
+                        <option value="">全部类型</option>
+                        <option value="financing">融资事件</option>
+                        <option value="acquisition">并购收购</option>
+                        <option value="product">产品发布</option>
+                        <option value="expansion">扩产扩张</option>
+                        <option value="procurement">招标采购</option>
+                        <option value="executive">高管动态</option>
+                        <option value="policy">政策利好</option>
+                    </select>
+                    <select class="filter-select">
+                        <option value="">全部来源</option>
+                        <option value="36kr">36氪</option>
+                        <option value="huxiu">虎嗅</option>
+                        <option value="rss">RSS订阅</option>
+                    </select>
+                    <input type="text" class="filter-input" placeholder="搜索企业名称...">
+                    <input type="date" class="filter-date">
+                    <span style="color: var(--color-secondary);">至</span>
+                    <input type="date" class="filter-date">
+                    <button class="btn btn-outline">重置</button>
+                </div>
+
+                <!-- 表格 -->
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>企业名称</th>
+                                    <th>事件类型</th>
+                                    <th>事件详情</th>
+                                    <th>来源</th>
+                                    <th>置信度</th>
+                                    <th>状态</th>
+                                    <th>发布时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td class="company-name">智元机器人</td>
+                                    <td><span class="type-tag financing">融资</span></td>
+                                    <td class="event-detail">完成B轮5000万人民币融资</td>
+                                    <td class="source-name">36氪</td>
+                                    <td>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-track">
+                                                <div class="confidence-fill high" style="width: 85%"></div>
+                                            </div>
+                                            <span class="confidence-value">85</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status-tag new">新增</span></td>
+                                    <td>2026-02-17</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn">查看</button>
+                                            <button class="action-btn">编辑</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td class="company-name">蔚来汽车</td>
+                                    <td><span class="type-tag expansion">扩产</span></td>
+                                    <td class="event-detail">投资10亿建设新能源产业园区</td>
+                                    <td class="source-name">虎嗅</td>
+                                    <td>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-track">
+                                                <div class="confidence-fill high" style="width: 78%"></div>
+                                            </div>
+                                            <span class="confidence-value">78</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status-tag contacted">已联系</span></td>
+                                    <td>2026-02-17</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn">查看</button>
+                                            <button class="action-btn">编辑</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td class="company-name">阿里云</td>
+                                    <td><span class="type-tag product">产品</span></td>
+                                    <td class="event-detail">发布新一代智能客服产品</td>
+                                    <td class="source-name">36氪</td>
+                                    <td>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-track">
+                                                <div class="confidence-fill medium" style="width: 65%"></div>
+                                            </div>
+                                            <span class="confidence-value">65</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status-tag new">新增</span></td>
+                                    <td>2026-02-16</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn">查看</button>
+                                            <button class="action-btn">编辑</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td class="company-name">宁德时代</td>
+                                    <td><span class="type-tag acquisition">并购</span></td>
+                                    <td class="event-detail">收购锂电池材料公司布局产业链</td>
+                                    <td class="source-name">创业邦</td>
+                                    <td>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-track">
+                                                <div class="confidence-fill high" style="width: 90%"></div>
+                                            </div>
+                                            <span class="confidence-value">90</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status-tag converted">已转化</span></td>
+                                    <td>2026-02-16</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn">查看</button>
+                                            <button class="action-btn">编辑</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td class="company-name">京东物流</td>
+                                    <td><span class="type-tag procurement">招标</span></td>
+                                    <td class="event-detail">招标云服务商合作伙伴</td>
+                                    <td class="source-name">RSS</td>
+                                    <td>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-track">
+                                                <div class="confidence-fill medium" style="width: 58%"></div>
+                                            </div>
+                                            <span class="confidence-value">58</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status-tag invalid">无效</span></td>
+                                    <td>2026-02-15</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn">查看</button>
+                                            <button class="action-btn">编辑</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        <div class="pagination-info">
+                            共 <strong>1,286</strong> 条记录，第 <strong>1</strong>/<strong>129</strong> 页
+                        </div>
+                        <div class="pagination-btns">
+                            <button class="page-btn" disabled>上一页</button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">3</button>
+                            <button class="page-btn">...</button>
+                            <button class="page-btn">129</button>
+                            <button class="page-btn">下一页</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

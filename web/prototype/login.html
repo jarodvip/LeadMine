@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadMine - 登录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #1A1A1A;
+            --color-primary-dark: #000000;
+            --color-secondary: #666666;
+            --color-border: #E5E5E5;
+            --color-bg: #FFFFFF;
+            --color-bg-alt: #F9F9F9;
+            --color-hover: #F5F5F5;
+            --color-emphasis: #333333;
+            --color-success: #52C41A;
+            --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--color-bg-alt);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+        }
+
+        .login-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 48px 40px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+        }
+
+        .logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-primary);
+            letter-spacing: 2px;
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--color-secondary);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 14px;
+            color: var(--color-primary);
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #999;
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: var(--color-secondary);
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color-primary);
+        }
+
+        .forgot-link {
+            font-size: 14px;
+            color: var(--color-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .forgot-link:hover {
+            color: var(--color-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-dark);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 28px 0;
+            color: var(--color-secondary);
+            font-size: 12px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-border);
+        }
+
+        .divider span {
+            padding: 0 16px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--color-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 网络节点图案 -->
+                        <circle cx="28" cy="28" r="8" fill="#1A1A1A"/>
+                        <circle cx="10" cy="10" r="5" fill="#1A1A1A"/>
+                        <circle cx="46" cy="10" r="4" fill="#666666"/>
+                        <circle cx="8" cy="40" r="4" fill="#666666"/>
+                        <circle cx="48" cy="42" r="5" fill="#1A1A1A"/>
+                        
+                        <!-- 连接线 -->
+                        <line x1="15" y1="13" x2="23" y2="23" stroke="#1A1A1A" stroke-width="1.5"/>
+                        <line x1="38" y1="13" x2="32" y2="22" stroke="#666666" stroke-width="1.5"/>
+                        <line x1="12" y1="37" x2="23" y2="31" stroke="#666666" stroke-width="1.5"/>
+                        <line x1="42" y1="39" x2="33" y2="32" stroke="#1A1A1A" stroke-width="1.5"/>
+                        <line x1="13" y1="14" x2="11" y2="37" stroke="#E5E5E5" stroke-width="1"/>
+                        <line x1="43" y1="12" x2="46" y2="39" stroke="#E5E5E5" stroke-width="1"/>
+                    </svg>
+                </div>
+                <div class="logo-text">LEADMINE</div>
+            </div>
+            
+            <h1 class="login-title">登录到您的账户</h1>
+            
+            <form>
+                <div class="form-group">
+                    <label class="form-label" for="username">用户名</label>
+                    <input type="text" id="username" class="form-input" placeholder="请输入用户名">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">密码</label>
+                    <input type="password" id="password" class="form-input" placeholder="请输入密码">
+                </div>
+                
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox">
+                        记住我
+                    </label>
+                    <a href="#" class="forgot-link">忘记密码？</a>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">登录</button>
+            </form>
+            
+            <div class="footer">
+                © 2026 LeadMine. All rights reserved.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

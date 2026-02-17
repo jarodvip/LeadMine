@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadMine - 线索详情</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #1A1A1A;
+            --color-primary-dark: #000000;
+            --color-secondary: #666666;
+            --color-border: #E5E5E5;
+            --color-bg: #FFFFFF;
+            --color-bg-alt: #F9F9F9;
+            --color-hover: #F5F5F5;
+            --color-success: #52C41A;
+            --color-warning: #FAAD14;
+            --color-error: #FF4D4F;
+            --color-financing: #1890FF;
+            --color-acquisition: #722ED1;
+            --color-product: #13C2C2;
+            --color-expansion: #FA8C16;
+            --color-procurement: #EB2F96;
+            --color-executive: #2F54EB;
+            --color-policy: #A0D911;
+            --sidebar-width: 220px;
+            --header-height: 60px;
+            --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--color-bg-alt);
+            color: var(--color-primary);
+            min-height: 100vh;
+        }
+
+        .app-layout { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--color-bg);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 32px; height: 32px; }
+        .logo-text { font-size: 16px; font-weight: 600; letter-spacing: 1.5px; }
+
+        .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--color-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover { background: var(--color-hover); color: var(--color-primary); }
+        .nav-item.active { background: var(--color-primary); color: var(--color-bg); }
+        .nav-icon { width: 20px; height: 20px; opacity: 0.7; }
+
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--color-border); }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--color-primary); color: var(--color-bg);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 500;
+        }
+
+        .main-content { flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; }
+
+        .header {
+            height: var(--header-height); background: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; position: sticky; top: 0; z-index: 50;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .breadcrumb { font-size: 14px; color: var(--color-secondary); }
+        .breadcrumb-current { color: var(--color-primary); font-weight: 500; }
+
+        .header-right { display: flex; align-items: center; gap: 16px; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 10px 20px; font-size: 14px; font-weight: 500;
+            border-radius: 6px; cursor: pointer; transition: all 0.2s;
+            border: none; text-decoration: none; gap: 8px;
+        }
+
+        .btn-primary { background: var(--color-primary); color: var(--color-bg); }
+        .btn-primary:hover { background: var(--color-primary-dark); }
+        .btn-outline { background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-primary); }
+        .btn-outline:hover { background: var(--color-hover); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-ghost { background: transparent; border: none; color: var(--color-secondary); }
+        .btn-ghost:hover { background: var(--color-hover); color: var(--color-primary); }
+
+        .page-content { flex: 1; padding: 24px; }
+
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .page-title { font-size: 22px; font-weight: 600; }
+
+        /* 详情布局 */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        .detail-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            padding: 24px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .company-info h1 {
+            font-size: 24px; font-weight: 600; margin-bottom: 12px;
+        }
+
+        .type-tag {
+            display: inline-block; padding: 4px 12px;
+            font-size: 13px; font-weight: 500; border-radius: 4px;
+        }
+
+        .type-tag.financing { background: rgba(24, 144, 255, 0.1); color: var(--color-financing); }
+        .type-tag.acquisition { background: rgba(114, 46, 209, 0.1); color: var(--color-acquisition); }
+        .type-tag.product { background: rgba(19, 194, 194, 0.1); color: var(--color-product); }
+
+        .detail-body { padding: 24px; }
+
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+
+        .info-item { margin-bottom: 20px; }
+        .info-label { font-size: 13px; color: var(--color-secondary); margin-bottom: 6px; }
+        .info-value { font-size: 15px; font-weight: 500; }
+
+        .confidence-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+        .confidence-bar { display: flex; align-items: center; gap: 12px; }
+        .confidence-track {
+            flex: 1; height: 8px; background: var(--color-border);
+            border-radius: 4px; overflow: hidden;
+        }
+        .confidence-fill { height: 100%; background: var(--color-success); border-radius: 4px; }
+        .confidence-value { font-size: 16px; font-weight: 600; min-width: 40px; }
+
+        /* 状态管理 */
+        .status-section {
+            margin-top: 24px; padding-top: 24px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .form-select, .form-input, .form-textarea {
+            width: 100%; padding: 10px 12px; font-size: 14px;
+            border: 1px solid var(--color-border); border-radius: 6px;
+            background: var(--color-bg);
+        }
+        .form-select:focus, .form-input:focus, .form-textarea:focus {
+            outline: none; border-color: var(--color-primary);
+        }
+        .form-textarea { min-height: 100px; resize: vertical; }
+
+        /* 右侧来源文章 */
+        .source-card { height: 100%; }
+        .source-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--color-border);
+        }
+        .source-title { font-size: 16px; font-weight: 600; }
+        .source-body { padding: 20px; }
+        .source-meta {
+            font-size: 13px; color: var(--color-secondary);
+            margin-bottom: 16px; padding-bottom: 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .source-summary {
+            font-size: 14px; line-height: 1.8; color: var(--color-secondary);
+            margin-bottom: 20px;
+        }
+        .source-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: var(--color-primary); text-decoration: none;
+            font-size: 14px;
+        }
+        .source-link:hover { text-decoration: underline; }
+
+        /* 操作按钮 */
+        .action-bar {
+            display: flex; gap: 12px; margin-top: 20px;
+        }
+
+        .timeline { margin-top: 24px; }
+        .timeline-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+        .timeline-item {
+            display: flex; gap: 12px; padding-bottom: 16px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: ''; position: absolute; left: 5px; top: 20px;
+            bottom: 0; width: 2px; background: var(--color-border);
+        }
+        .timeline-item:last-child::before { display: none; }
+        .timeline-dot {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--color-primary); flex-shrink: 0;
+        }
+        .timeline-content { flex: 1; }
+        .timeline-time { font-size: 12px; color: var(--color-secondary); margin-bottom: 4px; }
+        .timeline-text { font-size: 14px; }
+
+        @media (max-width: 1200px) {
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .info-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 56 56" fill="none">
+                            <circle cx="28" cy="28" r="8" fill="#1A1A1A"/>
+                            <circle cx="10" cy="10" r="5" fill="#1A1A1A"/>
+                            <circle cx="46" cy="10" r="4" fill="#666666"/>
+                            <circle cx="8" cy="40" r="4" fill="#666666"/>
+                            <circle cx="48" cy="42" r="5" fill="#1A1A1A"/>
+                            <line x1="15" y1="13" x2="23" y2="23" stroke="#1A1A1A" stroke-width="1.5"/>
+                            <line x1="38" y1="13" x2="32" y2="22" stroke="#666666" stroke-width="1.5"/>
+                            <line x1="12" y1="37" x2="23" y2="31" stroke="#666666" stroke-width="1.5"/>
+                            <line x1="42" y1="39" x2="33" y2="32" stroke="#1A1A1A" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">LEADMINE</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item">
+                    <span>仪表盘</span>
+                </a>
+                <a class="nav-item active">
+                    <span>线索管理</span>
+                </a>
+                <a class="nav-item">
+                    <span>文章列表</span>
+                </a>
+                <a class="nav-item">
+                    <span>数据源配置</span>
+                </a>
+                <a class="nav-item">
+                    <span>系统设置</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-avatar">J</div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <span class="breadcrumb">首页 / 线索管理 / <span class="breadcrumb-current">线索详情</span></span>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-outline btn-sm">返回列表</button>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">线索详情</h1>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-outline">导出线索</button>
+                        <button class="btn btn-primary">保存修改</button>
+                    </div>
+                </div>
+
+                <div class="detail-grid">
+                    <!-- 左侧详情 -->
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <div class="company-info">
+                                <h1>智元机器人</h1>
+                                <span class="type-tag financing">融资事件</span>
+                            </div>
+                        </div>
+                        <div class="detail-body">
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <div class="info-label">事件详情</div>
+                                    <div class="info-value">完成B轮5000万人民币融资</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">涉及金额</div>
+                                    <div class="info-value">5000万人民币</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">数据来源</div>
+                                    <div class="info-value">36氪</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">发布时间</div>
+                                    <div class="info-value">2026-02-17 10:30:00</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">创建时间</div>
+                                    <div class="info-value">2026-02-17 11:00:00</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">线索ID</div>
+                                    <div class="info-value">#1024</div>
+                                </div>
+                            </div>
+
+                            <div class="confidence-section">
+                                <div class="info-label">置信度</div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-track">
+                                        <div class="confidence-fill" style="width: 85%"></div>
+                                    </div>
+                                    <span class="confidence-value">85</span>
+                                </div>
+                            </div>
+
+                            <!-- 状态管理 -->
+                            <div class="status-section">
+                                <div class="info-grid">
+                                    <div class="form-group">
+                                        <label class="form-label">线索状态</label>
+                                        <select class="form-select">
+                                            <option value="new">新增</option>
+                                            <option value="contacted" selected>已联系</option>
+                                            <option value="converted">已转化</option>
+                                            <option value="invalid">无效</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">分配给</label>
+                                        <select class="form-select">
+                                            <option value="">未分配</option>
+                                            <option value="sales1" selected>销售人员A</option>
+                                            <option value="sales2">销售人员B</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">销售备注</label>
+                                    <textarea class="form-textarea" placeholder="添加跟进备注...">已电话联系，客户表示有兴趣进一步沟通，预计下周安排演示会议。</textarea>
+                                </div>
+                                <div class="action-bar">
+                                    <button class="btn btn-primary btn-sm">更新状态</button>
+                                    <button class="btn btn-outline btn-sm">添加到跟进计划</button>
+                                </div>
+                            </div>
+
+                            <!-- 操作时间线 -->
+                            <div class="timeline">
+                                <div class="timeline-title">操作记录</div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-time">2026-02-17 14:30</div>
+                                        <div class="timeline-text">状态变更为"已联系"</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-time">2026-02-17 11:15</div>
+                                        <div class="timeline-text">分配给销售人员A</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-time">2026-02-17 11:00</div>
+                                        <div class="timeline-text">线索创建</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧来源文章 -->
+                    <div class="detail-card source-card">
+                        <div class="source-header">
+                            <span class="source-title">来源文章</span>
+                        </div>
+                        <div class="source-body">
+                            <div class="source-meta">
+                                <div>36氪 · 2026-02-17 10:30</div>
+                            </div>
+                            <h3 style="font-size: 16px; margin-bottom: 12px;">
+                                智元机器人完成B轮5000万人民币融资
+                            </h3>
+                            <div class="source-summary">
+                                今日，智元机器人宣布完成B轮5000万人民币融资，本轮融资由红杉资本领投，高瓴创投跟投。资金将用于产品研发、市场拓展和团队建设。
+                                <br><br>
+                                智元机器人成立于2021年，专注于服务机器人研发，目前已推出多款商用服务机器人产品，广泛应用于酒店、餐厅、医院等场景。
+                            </div>
+                            <a href="#" class="source-link">
+                                查看原文 →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

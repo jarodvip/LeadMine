@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadMine - 数据源配置</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #1A1A1A;
+            --color-primary-dark: #000000;
+            --color-secondary: #666666;
+            --color-border: #E5E5E5;
+            --color-bg: #FFFFFF;
+            --color-bg-alt: #F9F9F9;
+            --color-hover: #F5F5F5;
+            --color-emphasis: #333333;
+            --color-success: #52C41A;
+            --color-warning: #FAAD14;
+            --color-error: #FF4D4F;
+            --sidebar-width: 220px;
+            --header-height: 60px;
+            --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--color-bg-alt);
+            color: var(--color-primary);
+            min-height: 100vh;
+        }
+
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--color-bg);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: var(--color-primary);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--color-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: var(--color-hover);
+            color: var(--color-primary);
+        }
+
+        .nav-item.active {
+            background: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: var(--color-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            height: var(--header-height);
+            background: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--color-secondary);
+        }
+
+        .breadcrumb-current {
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-content {
+            flex: 1;
+            padding: 24px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .btn-outline {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--color-hover);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* 筛选栏 */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-bg);
+            min-width: 120px;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .search-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--color-secondary);
+        }
+
+        /* 卡片网格 */
+        .source-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .source-card {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 24px;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .source-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .source-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .source-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .source-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--color-bg-alt);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .source-icon.kr36 { background: rgba(255, 100, 0, 0.1); }
+        .source-icon.huxiu { background: rgba(255, 100, 50, 0.1); }
+        .source-icon.tmt { background: rgba(0, 180, 255, 0.1); }
+        .source-icon.rss { background: rgba(255, 150, 0, 0.1); }
+        .source-icon.wechat { background: rgba(70, 200, 100, 0.1); }
+        .source-icon.zhihu { background: rgba(0, 140, 255, 0.1); }
+
+        .source-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .source-type {
+            font-size: 12px;
+            color: var(--color-secondary);
+            padding: 2px 8px;
+            background: var(--color-bg-alt);
+            border-radius: 4px;
+        }
+
+        .source-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .source-status-badge.online {
+            background: rgba(82, 196, 26, 0.1);
+            color: var(--color-success);
+        }
+
+        .source-status-badge.offline {
+            background: rgba(102, 102, 102, 0.1);
+            color: var(--color-secondary);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .source-card-body {
+            margin-bottom: 16px;
+        }
+
+        .source-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .meta-item {
+            font-size: 13px;
+        }
+
+        .meta-label {
+            color: var(--color-secondary);
+            margin-bottom: 2px;
+        }
+
+        .meta-value {
+            font-weight: 500;
+        }
+
+        .source-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 16px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .source-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            font-size: 13px;
+            color: var(--color-secondary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--color-hover);
+            color: var(--color-primary);
+        }
+
+        .action-btn.danger:hover {
+            background: rgba(255, 77, 79, 0.1);
+            color: var(--color-error);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            background: var(--color-border);
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: var(--color-success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: var(--color-bg);
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(18px);
+        }
+
+        /* 新增数据源卡片 */
+        .add-source-card {
+            background: var(--color-bg-alt);
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-source-card:hover {
+            border-color: var(--color-primary);
+            background: var(--color-hover);
+        }
+
+        .add-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--color-bg);
+            border: 2px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--color-secondary);
+            margin-bottom: 12px;
+        }
+
+        .add-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+
+            .source-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-bar {
+                flex-wrap: wrap;
+            }
+
+            .search-box {
+                order: -1;
+                flex-basis: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="28" cy="28" r="8" fill="#1A1A1A"/>
+                            <circle cx="10" cy="10" r="5" fill="#1A1A1A"/>
+                            <circle cx="46" cy="10" r="4" fill="#666666"/>
+                            <circle cx="8" cy="40" r="4" fill="#666666"/>
+                            <circle cx="48" cy="42" r="5" fill="#1A1A1A"/>
+                            <line x1="15" y1="13" x2="23" y2="23" stroke="#1A1A1A" stroke-width="1.5"/>
+                            <line x1="38" y1="13" x2="32" y2="22" stroke="#666666" stroke-width="1.5"/>
+                            <line x1="12" y1="37" x2="23" y2="31" stroke="#666666" stroke-width="1.5"/>
+                            <line x1="42" y1="39" x2="33" y2="32" stroke="#1A1A1A" stroke-width="1.5"/>
+                            <line x1="13" y1="14" x2="11" y2="37" stroke="#E5E5E5" stroke-width="1"/>
+                            <line x1="43" y1="12" x2="46" y2="39" stroke="#E5E5E5" stroke-width="1"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">LEADMINE</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>仪表盘</span>
+                </a>
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span>线索管理</span>
+                </a>
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>文章列表</span>
+                </a>
+                <a class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>数据源配置</span>
+                </a>
+                <a class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-avatar">J</div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <span class="breadcrumb">首页 / <span class="breadcrumb-current">数据源配置</span></span>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">数据源配置</h1>
+                    <button class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        新增数据源
+                    </button>
+                </div>
+
+                <!-- 筛选栏 -->
+                <div class="filter-bar">
+                    <select class="filter-select">
+                        <option value="">全部类型</option>
+                        <option value="news">新闻网站</option>
+                        <option value="rss">RSS订阅</option>
+                        <option value="wechat">微信公众号</option>
+                        <option value="social">社交媒体</option>
+                    </select>
+                    <select class="filter-select">
+                        <option value="">全部状态</option>
+                        <option value="online">运行中</option>
+                        <option value="offline">已停止</option>
+                    </select>
+                    <div class="search-box">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" placeholder="搜索数据源...">
+                    </div>
+                </div>
+
+                <!-- 数据源卡片网格 -->
+                <div class="source-grid">
+                    <!-- 36氪 -->
+                    <div class="source-card">
+                        <div class="source-card-header">
+                            <div class="source-info">
+                                <div class="source-icon kr36">🔷</div>
+                                <div>
+                                    <div class="source-name">36氪</div>
+                                    <span class="source-type">新闻网站</span>
+                                </div>
+                            </div>
+                            <div class="source-status-badge online">
+                                <span class="status-dot"></span>
+                                运行中
+                            </div>
+                        </div>
+                        <div class="source-card-body">
+                            <div class="source-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">抓取间隔</div>
+                                    <div class="meta-value">30分钟</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">今日抓取</div>
+                                    <div class="meta-value">156条</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">最后抓取</div>
+                                    <div class="meta-value">5分钟前</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">成功率</div>
+                                    <div class="meta-value">98.5%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="source-card-footer">
+                            <div class="source-actions">
+                                <button class="action-btn">编辑</button>
+                                <button class="action-btn">手动抓取</button>
+                            </div>
+                            <div class="toggle-switch active" title="启用/禁用"></div>
+                        </div>
+                    </div>
+
+                    <!-- 虎嗅 -->
+                    <div class="source-card">
+                        <div class="source-card-header">
+                            <div class="source-info">
+                                <div class="source-icon huxiu">🐯</div>
+                                <div>
+                                    <div class="source-name">虎嗅</div>
+                                    <span class="source-type">新闻网站</span>
+                                </div>
+                            </div>
+                            <div class="source-status-badge online">
+                                <span class="status-dot"></span>
+                                运行中
+                            </div>
+                        </div>
+                        <div class="source-card-body">
+                            <div class="source-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">抓取间隔</div>
+                                    <div class="meta-value">30分钟</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">今日抓取</div>
+                                    <div class="meta-value">89条</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">最后抓取</div>
+                                    <div class="meta-value">8分钟前</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">成功率</div>
+                                    <div class="meta-value">96.2%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="source-card-footer">
+                            <div class="source-actions">
+                                <button class="action-btn">编辑</button>
+                                <button class="action-btn">手动抓取</button>
+                            </div>
+                            <div class="toggle-switch active" title="启用/禁用"></div>
+                        </div>
+                    </div>
+
+                    <!-- 钛媒体 -->
+                    <div class="source-card">
+                        <div class="source-card-header">
+                            <div class="source-info">
+                                <div class="source-icon tmt">⚡</div>
+                                <div>
+                                    <div class="source-name">钛媒体</div>
+                                    <span class="source-type">新闻网站</span>
+                                </div>
+                            </div>
+                            <div class="source-status-badge online">
+                                <span class="status-dot"></span>
+                                运行中
+                            </div>
+                        </div>
+                        <div class="source-card-body">
+                            <div class="source-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">抓取间隔</div>
+                                    <div class="meta-value">60分钟</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">今日抓取</div>
+                                    <div class="meta-value">45条</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">最后抓取</div>
+                                    <div class="meta-value">15分钟前</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">成功率</div>
+                                    <div class="meta-value">94.8%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="source-card-footer">
+                            <div class="source-actions">
+                                <button class="action-btn">编辑</button>
+                                <button class="action-btn">手动抓取</button>
+                            </div>
+                            <div class="toggle-switch active" title="启用/禁用"></div>
+                        </div>
+                    </div>
+
+                    <!-- RSS订阅 -->
+                    <div class="source-card">
+                        <div class="source-card-header">
+                            <div class="source-info">
+                                <div class="source-icon rss">📡</div>
+                                <div>
+                                    <div class="source-name">RSS订阅</div>
+                                    <span class="source-type">RSS</span>
+                                </div>
+                            </div>
+                            <div class="source-status-badge online">
+                                <span class="status-dot"></span>
+                                运行中
+                            </div>
+                        </div>
+                        <div class="source-card-body">
+                            <div class="source-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">抓取间隔</div>
+                                    <div class="meta-value">15分钟</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">今日抓取</div>
+                                    <div class="meta-value">234条</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">最后抓取</div>
+                                    <div class="meta-value">3分钟前</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">成功率</div>
+                                    <div class="meta-value">99.1%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="source-card-footer">
+                            <div class="source-actions">
+                                <button class="action-btn">编辑</button>
+                                <button class="action-btn">手动抓取</button>
+                            </div>
+                            <div class="toggle-switch active" title="启用/禁用"></div>
+                        </div>
+                    </div>
+
+                    <!-- 知乎 -->
+                    <div class="source-card">
+                        <div class="source-card-header">
+                            <div class="source-info">
+                                <div class="source-icon zhihu">💬</div>
+                                <div>
+                                    <div class="source-name">知乎</div>
+                                    <span class="source-type">社交媒体</span>
+                                </div>
+                            </div>
+                            <div class="source-status-badge offline">
+                                <span class="status-dot"></span>
+                                已停止
+                            </div>
+                        </div>
+                        <div class="source-card-body">
+                            <div class="source-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">抓取间隔</div>
+                                    <div class="meta-value">60分钟</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">今日抓取</div>
+                                    <div class="meta-value">0条</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">最后抓取</div>
+                                    <div class="meta-value">2天前</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">成功率</div>
+                                    <div class="meta-value">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="source-card-footer">
+                            <div class="source-actions">
+                                <button class="action-btn">编辑</button>
+                                <button class="action-btn">手动抓取</button>
+                            </div>
+                            <div class="toggle-switch" title="启用/禁用"></div>
+                        </div>
+                    </div>
+
+                    <!-- 创业邦 -->
+                    <div class="source-card">
+                        <div class="source-card-header">
+                            <div class="source-info">
+                                <div class="source-icon">🚀</div>
+                                <div>
+                                    <div class="source-name">创业邦</div>
+                                    <span class="source-type">新闻网站</span>
+                                </div>
+                            </div>
+                            <div class="source-status-badge online">
+                                <span class="status-dot"></span>
+                                运行中
+                            </div>
+                        </div>
+                        <div class="source-card-body">
+                            <div class="source-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">抓取间隔</div>
+                                    <div class="meta-value">60分钟</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">今日抓取</div>
+                                    <div class="meta-value">32条</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">最后抓取</div>
+                                    <div class="meta-value">22分钟前</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">成功率</div>
+                                    <div class="meta-value">92.5%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="source-card-footer">
+                            <div class="source-actions">
+                                <button class="action-btn">编辑</button>
+                                <button class="action-btn">手动抓取</button>
+                            </div>
+                            <div class="toggle-switch active" title="启用/禁用"></div>
+                        </div>
+                    </div>
+
+                    <!-- 新增数据源 -->
+                    <div class="add-source-card">
+                        <div class="add-icon">+</div>
+                        <span class="add-text">新增数据源</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,221 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+from app.models import LeadEventTypeEnum, LeadStatusEnum, SourceTypeEnum, UserRoleEnum
+
+
+# 用户相关
+class UserBase(BaseModel):
+    username: str
+    email: Optional[EmailStr] = None
+    role: UserRoleEnum = UserRoleEnum.viewer
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    role: Optional[UserRoleEnum] = None
+    is_active: Optional[bool] = None
+
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+# 数据源相关
+class DataSourceBase(BaseModel):
+    name: str
+    type: SourceTypeEnum
+    url: str
+    config: Optional[dict] = None
+    crawl_interval: int = 60
+    enabled: bool = True
+
+
+class DataSourceCreate(DataSourceBase):
+    pass
+
+
+class DataSourceUpdate(BaseModel):
+    name: Optional[str] = None
+    url: Optional[str] = None
+    config: Optional[dict] = None
+    crawl_interval: Optional[int] = None
+    enabled: Optional[bool] = None
+
+
+class DataSourceResponse(DataSourceBase):
+    id: int
+    last_crawl_at: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 文章相关
+class ArticleBase(BaseModel):
+    title: str
+    content: Optional[str] = None
+    summary: Optional[str] = None
+    author: Optional[str] = None
+    source_name: str
+    source_url: str
+    source_type: SourceTypeEnum = SourceTypeEnum.news
+    category: Optional[str] = None
+    keywords: Optional[List[str]] = None
+    published_at: Optional[datetime] = None
+
+
+class ArticleResponse(ArticleBase):
+    id: int
+    crawled_at: datetime
+    is_duplicate: bool
+    is_filtered: bool
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 线索相关
+class LeadBase(BaseModel):
+    company_name: str
+    event_type: LeadEventTypeEnum
+    event_detail: Optional[str] = None
+    event_amount: Optional[str] = None
+    source_article_id: Optional[int] = None
+    source_title: Optional[str] = None
+    source_url: Optional[str] = None
+    source_name: Optional[str] = None
+    published_at: Optional[datetime] = None
+    confidence: int = 50
+
+
+class LeadCreate(LeadBase):
+    pass
+
+
+class LeadUpdate(BaseModel):
+    status: Optional[LeadStatusEnum] = None
+    assigned_to: Optional[str] = None
+    sales_notes: Optional[str] = None
+    enrichment_data: Optional[dict] = None
+
+
+class LeadResponse(LeadBase):
+    id: int
+    status: LeadStatusEnum
+    assigned_to: Optional[str]
+    sales_notes: Optional[str]
+    enrichment_data: Optional[dict]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 关键词相关
+class KeywordBase(BaseModel):
+    keyword: str
+    category: Optional[str] = None
+    weight: int = 1
+    enabled: bool = True
+
+
+class KeywordCreate(KeywordBase):
+    pass
+
+
+class KeywordUpdate(BaseModel):
+    category: Optional[str] = None
+    weight: Optional[int] = None
+    enabled: Optional[bool] = None
+
+
+class KeywordResponse(KeywordBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 线索规则相关
+class LeadRuleBase(BaseModel):
+    name: str
+    event_type: LeadEventTypeEnum
+    patterns: List[str]
+    priority: int = 5
+    enabled: bool = True
+
+
+class LeadRuleCreate(LeadRuleBase):
+    pass
+
+
+class LeadRuleUpdate(BaseModel):
+    name: Optional[str] = None
+    patterns: Optional[List[str]] = None
+    priority: Optional[int] = None
+    enabled: Optional[bool] = None
+
+
+class LeadRuleResponse(LeadRuleBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 分页响应
+class PaginatedResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    data: List
+
+
+# 统计相关
+class DashboardStats(BaseModel):
+    today_leads: int = 0
+    week_leads: int = 0
+    month_leads: int = 0
+    total_leads: int = 0
+
+
+class LeadsByType(BaseModel):
+    financing: int = 0
+    acquisition: int = 0
+    product: int = 0
+    expansion: int = 0
+    procurement: int = 0
+    executive: int = 0
+    policy: int = 0
+    other: int = 0
+
+
+class DashboardResponse(DashboardStats):
+    leads_by_type: LeadsByType = {}
+    leads_by_source: dict = {}
+    recent_leads: List[LeadResponse] = []
