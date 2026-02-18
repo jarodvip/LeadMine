@@ -47,7 +47,7 @@ sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} $
     fi
     
     docker --version
-    docker-compose --version
+    docker compose version
 "
 
 # 2. 创建部署目录
@@ -83,13 +83,13 @@ sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} $
     docker pull redis:7-alpine || true
     
     echo '启动服务...'
-    docker-compose up -d
+    docker compose up -d --build
     
     echo '等待服务启动...'
     sleep 40
     
     # 检查容器状态
-    docker-compose ps
+    docker compose ps
 "
 
 # 7. 验证部署
@@ -100,7 +100,8 @@ sleep 15
 echo ""
 echo "========== 检查服务状态 =========="
 sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
-    docker-compose ps
+    cd ${APP_DIR}
+    docker compose ps
     echo ''
     echo '检查后端API...'
     curl -s http://localhost:8000/ || echo '后端可能需要更多时间启动'
@@ -114,5 +115,5 @@ echo "MySQL:   ${DOMAIN}:3306"
 echo ""
 echo "默认账户: admin / admin123"
 echo ""
-echo "查看日志: cd ${APP_DIR} && docker-compose logs -f"
-echo "停止服务: cd ${APP_DIR} && docker-compose down"
+echo "查看日志: cd ${APP_DIR} && docker compose logs -f"
+echo "停止服务: cd ${APP_DIR} && docker compose down"
