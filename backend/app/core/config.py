@@ -26,14 +26,8 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = True
 
-    # CORS配置
-    cors_origins: list = [
-        "http://localhost:8501",
-        "http://localhost:3000",
-        "http://127.0.0.1:5500",
-        "http://180.76.184.204",
-        "http://180.76.184.204:80",
-    ]
+    # CORS配置 - 允许所有来源
+    cors_origins: list = ["*"]
 
     # 爬虫配置
     crawl_timeout: int = 30
