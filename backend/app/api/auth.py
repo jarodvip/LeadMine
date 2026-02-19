@@ -49,6 +49,9 @@ def login(
 )
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """用户注册"""
+    # 强制 role 为 user，不允许注册其他角色（包括 admin）
+    user_data.role = "user"
+
     # 检查用户名是否已存在
     existing_user = db.query(User).filter(User.username == user_data.username).first()
     if existing_user:

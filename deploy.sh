@@ -1,119 +1,117 @@
 #!/bin/bash
 
-# LeadMine 云服务器部署脚本
+# LeadMine 安全部署脚本
+# 使用方法: export SERVER_IP=your_ip && ./deploy.sh
 
-set -e
+set -euo pipefail
 
-# 服务器配置
-SERVER_IP="180.76.184.204"
-SSH_PORT="22"
-SERVER_USER="root"
-SERVER_PASSWORD="asd456JKL!"
-
-# 应用配置
-APP_NAME="leadmine"
+# 配置（从环境变量读取）
+SERVER_IP="${SERVER_IP:-}"
+SERVER_USER="${SERVER_USER:-deploy}"
 APP_DIR="/opt/leadmine"
-DOMAIN="${SERVER_IP}"
+SSH_PORT="${SSH_PORT:-22}"
 
-echo "========== LeadMine 部署开始 =========="
-echo "目标服务器: ${SERVER_IP}:${SSH_PORT}"
+# 颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# 检查必要的环境变量
+if [[ -z "$SERVER_IP" ]]; then
+    echo -e "${RED}错误: 请设置 SERVER_IP 环境变量${NC}"
+    echo "示例: export SERVER_IP=180.76.184.204"
+    exit 1
+fi
+
+# 检查SSH密钥
+if [[ ! -f ~/.ssh/id_rsa ]]; then
+    echo -e "${RED}错误: 未找到SSH密钥 ~/.ssh/id_rsa${NC}"
+    echo "请配置SSH密钥认证:"
+    echo "  1. 生成密钥: ssh-keygen -t rsa -b 4096"
+    echo "  2. 复制到服务器: ssh-copy-id ${SERVER_USER}@${SERVER_IP}"
+    exit 1
+fi
+
+echo -e "${GREEN}========== LeadMine 生产部署 ==========${NC}"
+echo "目标服务器: ${SERVER_IP}"
+echo "部署用户: ${SERVER_USER}"
 echo "应用目录: ${APP_DIR}"
 
-# 1. 安装Docker（如未安装）
-echo "[1/7] 检查并安装Docker..."
-sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
-    if ! command -v docker &> /dev/null; then
-        echo '安装Docker...'
-        apt-get update
-        apt-get install -y ca-certificates curl gnupg lsb-release
-        
-        # 添加Docker GPG key
-        mkdir -p /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        
-        # 添加Docker仓库
-        echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable' > /etc/apt/sources.list.d/docker.list
-        
-        apt-get update
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        
-        # 启动Docker
-        systemctl start docker
-        systemctl enable docker
-        
-        echo 'Docker安装完成'
+# 1. 备份现有数据
+echo -e "\n${YELLOW}[1/6] 备份现有数据...${NC}"
+ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
+    if [ -d ${APP_DIR} ] && [ -f ${APP_DIR}/.env ]; then
+        BACKUP_DIR=/opt/backups/leadmine-\$(date +%Y%m%d-%H%M%S)
+        mkdir -p \${BACKUP_DIR}
+        cd ${APP_DIR}
+        source .env 2>/dev/null || true
+        docker compose exec -T mysql mysqldump -u root -p\${MYSQL_ROOT_PASSWORD} \${MYSQL_DATABASE} > \${BACKUP_DIR}/database.sql 2>/dev/null || echo '数据库备份跳过'
+        cp .env \${BACKUP_DIR}/ 2>/dev/null || true
+        echo \"备份完成: \${BACKUP_DIR}\"
     else
-        echo 'Docker已安装'
+        echo '首次部署，跳过备份'
     fi
-    
-    docker --version
-    docker compose version
 "
 
 # 2. 创建部署目录
-echo "[2/7] 创建服务器目录..."
-sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
-    mkdir -p ${APP_DIR}
-    mkdir -p ${APP_DIR}/logs
-    echo '目录创建完成'
-"
+echo -e "\n${YELLOW}[2/6] 创建服务器目录...${NC}"
+ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${APP_DIR}/logs ${APP_DIR}/backup"
 
-# 3. 上传 docker-compose.yml
-echo "[3/7] 上传配置文件..."
-sshpass -p "${SERVER_PASSWORD}" scp -o StrictHostKeyChecking=no -P ${SSH_PORT} docker-compose.yml ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/
+# 3. 上传配置文件
+echo -e "\n${YELLOW}[3/6] 上传配置文件...${NC}"
+scp -P ${SSH_PORT} docker-compose.prod.yml ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/docker-compose.yml
 
-# 4. 上传后端代码
-echo "[4/7] 上传后端代码..."
-sshpass -p "${SERVER_PASSWORD}" scp -o StrictHostKeyChecking=no -P ${SSH_PORT} -r backend ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/
+if [[ ! -f .env.prod ]]; then
+    echo -e "${RED}错误: 未找到 .env.prod 文件${NC}"
+    exit 1
+fi
 
-# 5. 上传前端原型
-echo "[5/7] 上传前端文件..."
-sshpass -p "${SERVER_PASSWORD}" scp -o StrictHostKeyChecking=no -P ${SSH_PORT} -r web ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/
+scp -P ${SSH_PORT} .env.prod ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/.env
 
-# 6. 启动Docker服务
-echo "[6/7] 启动Docker服务..."
-sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
+# 4. 上传代码
+echo -e "\n${YELLOW}[4/6] 上传应用代码...${NC}"
+rsync -avz --delete \
+    --exclude='__pycache__' \
+    --exclude='*.pyc' \
+    --exclude='.git' \
+    --exclude='.env' \
+    --exclude='.venv' \
+    backend/ ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/backend/
+
+rsync -avz --delete \
+    --exclude='node_modules' \
+    --exclude='.git' \
+    web/dist/ ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/web/dist/
+
+# 5. 构建并启动服务
+echo -e "\n${YELLOW}[5/6] 构建并启动服务...${NC}"
+ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
     cd ${APP_DIR}
-    
-    # 拉取镜像
-    echo '拉取MySQL镜像...'
-    docker pull mysql:8.0 || true
-    
-    echo '拉取Redis镜像...'
-    docker pull redis:7-alpine || true
-    
-    echo '启动服务...'
+    docker compose down --remove-orphans 2>/dev/null || true
+    docker compose pull
     docker compose up -d --build
-    
-    echo '等待服务启动...'
-    sleep 40
-    
-    # 检查容器状态
+    sleep 10
     docker compose ps
 "
 
-# 7. 验证部署
-echo "[7/7] 验证部署..."
-sleep 15
-
-# 检查服务状态
-echo ""
-echo "========== 检查服务状态 =========="
-sshpass -p "${SERVER_PASSWORD}" ssh -o StrictHostKeyChecking=no -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
+# 6. 健康检查
+echo -e "\n${YELLOW}[6/6] 执行健康检查...${NC}"
+HEALTH_STATUS=$(ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
     cd ${APP_DIR}
-    docker compose ps
-    echo ''
-    echo '检查后端API...'
-    curl -s http://localhost:8000/ || echo '后端可能需要更多时间启动'
-"
+    docker compose exec -T backend wget -qO- http://localhost:8000/health 2>/dev/null || echo 'FAILED'
+")
 
+if [[ "$HEALTH_STATUS" == *"ok"* ]] || [[ "$HEALTH_STATUS" == *"\"status\":\"ok\""* ]]; then
+    echo -e "${GREEN}✓ 健康检查通过${NC}"
+else
+    echo -e "${RED}✗ 健康检查失败${NC}"
+    exit 1
+fi
+
+echo -e "\n${GREEN}========== 部署完成！==========${NC}"
+echo "访问地址: http://${SERVER_IP}"
 echo ""
-echo "========== 部署完成 =========="
-echo "后端API: http://${DOMAIN}:8000"
-echo "API文档: http://${DOMAIN}:8000/docs"
-echo "MySQL:   ${DOMAIN}:3306"
-echo ""
-echo "默认账户: admin / admin123"
-echo ""
-echo "查看日志: cd ${APP_DIR} && docker compose logs -f"
-echo "停止服务: cd ${APP_DIR} && docker compose down"
+echo -e "${YELLOW}重要提醒:${NC}"
+echo "1. 查看服务器日志获取临时密码"
+echo "2. 立即登录并修改默认密码"

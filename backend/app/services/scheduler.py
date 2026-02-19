@@ -33,27 +33,6 @@ class CrawlScheduler:
         self.running = True
         logger.info("爬虫调度器已启动")
 
-
-class CrawlScheduler:
-    """爬虫定时任务调度器"""
-
-    def __init__(self):
-        self.scheduler = BackgroundScheduler()
-        self.running = False
-
-    def start(self):
-        """启动调度器"""
-        if self.running:
-            logger.warning("调度器已在运行")
-            return
-
-        # 从数据库加载数据源并添加任务
-        self._load_tasks_from_db()
-
-        self.scheduler.start()
-        self.running = True
-        logger.info("爬虫调度器已启动")
-
     def stop(self):
         """停止调度器"""
         if not self.running:

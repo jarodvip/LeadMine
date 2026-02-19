@@ -110,7 +110,7 @@
               <h3 style="font-size: 16px; margin-bottom: 12px;">
                 {{ article.title }}
               </h3>
-              <div class="source-summary" v-html="article.content?.slice(0, 500) + '...'"></div>
+              <div class="source-summary">{{ article.content?.slice(0, 500) }}...</div>
               <a :href="article.url" target="_blank" class="source-link">
                 查看原文 →
               </a>

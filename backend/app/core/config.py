@@ -1,33 +1,48 @@
-from pydantic_settings import BaseSettings
-from typing import Optional
+"""
+应用配置
+"""
+
 import os
+import warnings
+from typing import List
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
-    # 数据库配置 - 默认使用SQLite本地测试
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./leadmine.db")
-
-    # Redis配置
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
-
-    # Elasticsearch配置
-    elasticsearch_url: str = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
-
-    # JWT配置
-    jwt_secret: str = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
-    jwt_algorithm: str = "HS256"
-    jwt_expiration_hours: int = 24
-
-    # RSSHub配置
-    rsshub_url: str = os.getenv("RSSHUB_URL", "http://localhost:1200")
+    """应用配置类"""
 
     # 应用配置
-    app_name: str = "LeadMine"
-    app_version: str = "1.0.0"
-    debug: bool = True
+    app_name: str = "LeadMine API"
+    debug: bool = Field(default=False, env="DEBUG")
+    version: str = "1.0.0"
 
-    # CORS配置 - 允许所有来源
-    cors_origins: list = ["*"]
+    # 数据库配置
+    database_url: str = Field(default="sqlite:///./leadmine.db", env="DATABASE_URL")
+
+    # Redis 配置
+    redis_url: str = Field(default="redis://localhost:6379", env="REDIS_URL")
+
+    # Elasticsearch 配置
+    elasticsearch_url: str = Field(
+        default="http://localhost:9200", env="ELASTICSEARCH_URL"
+    )
+
+    # JWT 配置 - 强制从环境变量读取
+    jwt_secret: str = Field(..., env="JWT_SECRET")
+    jwt_algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
+    jwt_expiration_hours: int = Field(default=24, env="JWT_EXPIRATION_HOURS")
+
+    # RSSHub 配置
+    rsshub_url: str = Field(default="http://localhost:1200", env="RSSHUB_URL")
+
+    # CORS 配置 - 默认只允许本地开发环境
+    cors_origins: List[str] = Field(
+        default=["http://localhost:8501", "http://localhost:3000"], env="CORS_ORIGINS"
+    )
+
+    # 管理员初始密码
+    admin_password: str = Field(default="", env="ADMIN_PASSWORD")
 
     # 爬虫配置
     crawl_timeout: int = 30
@@ -38,4 +53,16 @@ class Settings(BaseSettings):
         extra = "allow"
 
 
+# 全局配置实例
 settings = Settings()
+
+# 验证 JWT 密钥
+if (
+    not settings.jwt_secret
+    or settings.jwt_secret == "your-secret-key-change-in-production"
+):
+    warnings.warn(
+        "WARNING: JWT_SECRET 未设置或使用默认弱密钥！"
+        "请设置强密钥: export JWT_SECRET=\$(openssl rand -base64 64)",
+        RuntimeWarning,
+    )

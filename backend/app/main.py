@@ -38,25 +38,36 @@ async def lifespan(app: FastAPI):
 
 def create_default_admin():
     """创建默认管理员账户"""
+    import secrets
     from sqlalchemy.orm import Session
     from app.core.database import SessionLocal
     from app.core.security import get_password_hash
     from app.models import User
+    from app.core.config import settings
 
     db = SessionLocal()
     try:
         # 检查是否已存在管理员
         admin = db.query(User).filter(User.username == "admin").first()
         if not admin:
+            # 从环境变量读取或使用随机生成的强密码
+            admin_password = settings.admin_password or secrets.token_urlsafe(16)
+            if not settings.admin_password:
+                print(f"=" * 60)
+                print(f"WARNING: ADMIN_PASSWORD 未设置，已生成临时密码")
+                print(f"临时密码: {admin_password}")
+                print(f"请立即登录并修改密码！")
+                print(f"=" * 60)
+
             admin = User(
                 username="admin",
-                password_hash=get_password_hash("admin123"),
+                password_hash=get_password_hash(admin_password),
                 role="admin",
                 is_active=True,
             )
             db.add(admin)
             db.commit()
-            print("默认管理员账户已创建: admin / admin123")
+            print("默认管理员账户已创建")
     finally:
         db.close()
 
