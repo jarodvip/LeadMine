@@ -3,8 +3,8 @@
 """
 
 from typing import Dict, List
-from app.scrapers.spiders.kr36 import Kr36Spider, crawl_kr36
-from app.scrapers.spiders.huxiu import HuxiuSpider, crawl_huxiu
+from .spiders.kr36 import Kr36Spider, crawl_kr36
+from .spiders.huxiu import HuxiuSpider, crawl_huxiu
 from app.processors.rss_parser import RSSParser
 import logging
 

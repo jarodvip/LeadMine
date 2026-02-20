@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models import LeadEventTypeEnum, LeadStatusEnum, SourceTypeEnum, UserRoleEnum
+from app.processors.cleaner import sanitize_input
 
 
 # 用户相关
@@ -122,6 +123,14 @@ class LeadCreate(LeadBase):
     def validate_confidence(cls, v):
         if v < 0 or v > 100:
             raise ValueError("置信度必须在 0-100 之间")
+        return v
+
+    @field_validator("company_name", "event_detail", "event_amount")
+    @classmethod
+    def sanitize_xss_fields(cls, v):
+        """XSS 过滤"""
+        if v is not None:
+            return sanitize_input(v)
         return v
 
 

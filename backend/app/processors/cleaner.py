@@ -1,5 +1,5 @@
 """
-数据清洗服务 - HTML清洗、文本提取
+数据清洗服务 - HTML清洗、文本提取、XSS过滤
 """
 
 import re
@@ -13,6 +13,60 @@ import logging
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+# XSS 危险标签和属性模式
+XSS_DANGEROUS_TAGS = [
+    "script",
+    "iframe",
+    "object",
+    "embed",
+    "form",
+    "input",
+    "textarea",
+    "button",
+    "link",
+    "style",
+    "meta",
+    "base",
+    "noscript",
+    "frameset",
+    "frame",
+]
+
+XSS_DANGEROUS_ATTRIBUTES = [
+    "onabort",
+    "onblur",
+    "onchange",
+    "onclick",
+    "ondblclick",
+    "onerror",
+    "onfocus",
+    "onkeydown",
+    "onkeypress",
+    "onkeyup",
+    "onload",
+    "onmousedown",
+    "onmousemove",
+    "onmouseout",
+    "onmouseover",
+    "onmouseup",
+    "onreset",
+    "onresize",
+    "onselect",
+    "onsubmit",
+    "onunload",
+    "javascript:",
+    "data:",
+    "vbscript:",
+    "expression(",
+    "mocha:",
+    "livescript:",
+]
+
+XSS_EVENT_PATTERN = re.compile(r"on\w+\s*=", re.IGNORECASE)
+XSS_SCRIPT_PATTERN = re.compile(r"<script[^>]*>.*?</script>", re.IGNORECASE | re.DOTALL)
+XSS_IFRAME_PATTERN = re.compile(r"<iframe[^>]*>.*?</iframe>", re.IGNORECASE | re.DOTALL)
 
 
 class ArticleCleaner:
@@ -64,6 +118,75 @@ class ArticleCleaner:
 
         # 移除首尾空白
         text = text.strip()
+
+        return text
+
+    def sanitize_xss(self, html: str) -> str:
+        """
+        过滤 XSS 攻击内容
+        Args:
+            html: 可能包含 XSS 的 HTML 内容
+        Returns:
+            安全的纯文本
+        """
+        if not html:
+            return ""
+
+        try:
+            # 使用 BeautifulSoup 解析
+            soup = BeautifulSoup(html, "html.parser")
+
+            # 移除所有危险标签
+            for tag in soup.find_all(XSS_DANGEROUS_TAGS):
+                tag.decompose()
+
+            # 移除危险属性
+            for tag in soup.find_all(True):
+                for attr in list(tag.attrs.keys()):
+                    # 移除事件处理器
+                    if attr.lower().startswith("on"):
+                        del tag.attrs[attr]
+                    # 移除危险的 URL 协议
+                    elif attr in ["href", "src", "action", "formaction"]:
+                        value = tag.attrs[attr]
+                        if value and isinstance(value, str):
+                            value_lower = value.lower().strip()
+                            if any(
+                                value_lower.startswith(d)
+                                for d in ["javascript:", "data:", "vbscript:"]
+                            ):
+                                del tag.attrs[attr]
+
+            # 获取纯文本
+            text = soup.get_text(separator=" ")
+
+            # 再次过滤可能的脚本残留
+            text = XSS_SCRIPT_PATTERN.sub("", text)
+            text = XSS_IFRAME_PATTERN.sub("", text)
+            text = XSS_EVENT_PATTERN.sub("", text)
+
+            return self._clean_text(text)
+
+        except Exception as e:
+            logger.warning(f"XSS 过滤失败: {e}")
+            # 如果解析失败，使用简单过滤
+            return self._simple_sanitize_xss(html)
+
+    def _simple_sanitize_xss(self, text: str) -> str:
+        """简单 XSS 过滤（备用方案）"""
+        if not text:
+            return ""
+
+        # 移除 script 标签
+        text = XSS_SCRIPT_PATTERN.sub("", text)
+        # 移除 iframe
+        text = XSS_IFRAME_PATTERN.sub("", text)
+        # 移除事件处理器
+        text = XSS_EVENT_PATTERN.sub("", text)
+        # 移除 HTML 标签
+        text = self.html_tags_pattern.sub(" ", text)
+        # 清理空格
+        text = self._clean_text(text)
 
         return text
 
@@ -206,16 +329,31 @@ def clean_article(article_data: Dict) -> Dict:
     """
     cleaner = ArticleCleaner()
 
-    # 清洗标题
+    # 清洗标题（同时进行 XSS 过滤）
     if article_data.get("title"):
-        article_data["title"] = cleaner._clean_text(article_data["title"])
+        article_data["title"] = cleaner.sanitize_xss(article_data["title"])
 
-    # 清洗内容
+    # 清洗内容（同时进行 XSS 过滤）
     if article_data.get("content"):
-        article_data["content"] = cleaner.clean_html(article_data["content"])
+        article_data["content"] = cleaner.sanitize_xss(article_data["content"])
 
     # 清洗摘要
     if article_data.get("summary"):
-        article_data["summary"] = cleaner._clean_text(article_data["summary"])
+        article_data["summary"] = cleaner.sanitize_xss(article_data["summary"])
 
     return article_data
+
+
+def sanitize_input(text: str) -> str:
+    """
+    通用输入净化函数
+    Args:
+        text: 用户输入文本
+    Returns:
+        净化后的安全文本
+    """
+    if not text:
+        return ""
+
+    cleaner = ArticleCleaner()
+    return cleaner.sanitize_xss(text)

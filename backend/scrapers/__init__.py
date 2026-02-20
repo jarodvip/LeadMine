@@ -1,4 +1,4 @@
-from app.scrapers.spider_factory import (
+from .spider_factory import (
     SpiderFactory,
     crawl_all_sources,
     crawl_kr36,
