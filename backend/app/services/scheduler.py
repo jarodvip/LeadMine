@@ -86,7 +86,7 @@ class CrawlScheduler:
 
     def _crawl_source(self, source_id: int):
         """执行爬取任务"""
-        from app.scrapers.spider_factory import SpiderFactory
+        from scrapers.spider_factory import SpiderFactory
 
         db = SessionLocal()
         try:
