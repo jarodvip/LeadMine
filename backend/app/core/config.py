@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, env="DEBUG")
     version: str = "1.0.0"
 
+    @property
+    def app_version(self) -> str:
+        return self.version
+
     # 数据库配置
     database_url: str = Field(default="sqlite:///./leadmine.db", env="DATABASE_URL")
 

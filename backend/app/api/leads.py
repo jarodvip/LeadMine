@@ -17,6 +17,10 @@ from app.schemas import (
     PaginatedResponse,
     DashboardResponse,
     LeadsByType,
+    BatchUpdateStatusRequest,
+    BatchAssignRequest,
+    BatchDeleteRequest,
+    BatchOperationResponse,
 )
 
 router = APIRouter(prefix="/leads", tags=["线索管理"])
@@ -249,19 +253,18 @@ def export_leads(
     )
 
 
-@router.post("/batch/update-status")
+@router.post("/batch/update-status", response_model=BatchOperationResponse)
 def batch_update_status(
-    lead_ids: List[int],
-    status: LeadStatusEnum,
+    request: BatchUpdateStatusRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """批量更新线索状态"""
     updated_count = (
         db.query(Lead)
-        .filter(Lead.id.in_(lead_ids))
+        .filter(Lead.id.in_(request.lead_ids))
         .update(
-            {Lead.status: status, Lead.updated_at: datetime.now()},
+            {Lead.status: request.status, Lead.updated_at: datetime.now()},
             synchronize_session=False,
         )
     )
@@ -270,22 +273,22 @@ def batch_update_status(
     return {
         "message": f"成功更新 {updated_count} 条线索",
         "updated_count": updated_count,
+        "deleted_count": 0,
     }
 
 
-@router.post("/batch/assign")
+@router.post("/batch/assign", response_model=BatchOperationResponse)
 def batch_assign(
-    lead_ids: List[int],
-    assigned_to: str,
+    request: BatchAssignRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """批量分配线索"""
     updated_count = (
         db.query(Lead)
-        .filter(Lead.id.in_(lead_ids))
+        .filter(Lead.id.in_(request.lead_ids))
         .update(
-            {Lead.assigned_to: assigned_to, Lead.updated_at: datetime.now()},
+            {Lead.assigned_to: request.assigned_to, Lead.updated_at: datetime.now()},
             synchronize_session=False,
         )
     )
@@ -294,22 +297,26 @@ def batch_assign(
     return {
         "message": f"成功分配 {updated_count} 条线索",
         "updated_count": updated_count,
+        "deleted_count": 0,
     }
 
 
-@router.post("/batch/delete")
+@router.post("/batch/delete", response_model=BatchOperationResponse)
 def batch_delete(
-    lead_ids: List[int],
+    request: BatchDeleteRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """批量删除线索"""
     deleted_count = (
-        db.query(Lead).filter(Lead.id.in_(lead_ids)).delete(synchronize_session=False)
+        db.query(Lead)
+        .filter(Lead.id.in_(request.lead_ids))
+        .delete(synchronize_session=False)
     )
     db.commit()
 
     return {
         "message": f"成功删除 {deleted_count} 条线索",
+        "updated_count": 0,
         "deleted_count": deleted_count,
     }

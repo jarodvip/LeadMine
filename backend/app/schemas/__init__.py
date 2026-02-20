@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models import LeadEventTypeEnum, LeadStatusEnum, SourceTypeEnum, UserRoleEnum
@@ -13,6 +13,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+
+    @field_validator("password")
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("密码长度至少为8位")
+        return v
 
 
 class UserUpdate(BaseModel):
@@ -112,7 +118,11 @@ class LeadBase(BaseModel):
 
 
 class LeadCreate(LeadBase):
-    pass
+    @field_validator("confidence")
+    def validate_confidence(cls, v):
+        if v < 0 or v > 100:
+            raise ValueError("置信度必须在 0-100 之间")
+        return v
 
 
 class LeadUpdate(BaseModel):
@@ -193,7 +203,28 @@ class PaginatedResponse(BaseModel):
     total: int
     page: int
     page_size: int
-    data: List
+    data: List[LeadResponse]
+
+
+# 批量操作请求
+class BatchUpdateStatusRequest(BaseModel):
+    lead_ids: List[int]
+    status: LeadStatusEnum
+
+
+class BatchAssignRequest(BaseModel):
+    lead_ids: List[int]
+    assigned_to: str
+
+
+class BatchDeleteRequest(BaseModel):
+    lead_ids: List[int]
+
+
+class BatchOperationResponse(BaseModel):
+    message: str
+    updated_count: int = 0
+    deleted_count: int = 0
 
 
 # 统计相关

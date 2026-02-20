@@ -59,6 +59,7 @@ class UserRoleEnum(str, enum.Enum):
     """用户角色"""
 
     admin = "admin"
+    user = "user"
     sales = "sales"
     viewer = "viewer"
 
