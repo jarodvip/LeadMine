@@ -32,6 +32,9 @@ def get_leads(
     page_size: int = Query(20, ge=1, le=100),
     status: Optional[LeadStatusEnum] = None,
     event_type: Optional[LeadEventTypeEnum] = None,
+    confidence: Optional[str] = Query(
+        None, description="置信度筛选: high(>=70), medium(50-69), low(<50)"
+    ),
     keyword: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
@@ -41,7 +44,6 @@ def get_leads(
     """获取线索列表"""
     query = db.query(Lead)
 
-    # 筛选条件
     if status:
         query = query.filter(Lead.status == status)
     if event_type:
@@ -53,83 +55,26 @@ def get_leads(
     if end_date:
         query = query.filter(Lead.published_at <= end_date)
 
-    # 总数
-    total = query.count()
+    # 置信度筛选
+    if confidence:
+        if confidence == "high":
+            query = query.filter(Lead.confidence >= 70)
+        elif confidence == "medium":
+            query = query.filter(Lead.confidence >= 50, Lead.confidence < 70)
+        elif confidence == "low":
+            query = query.filter(Lead.confidence < 50)
 
-    # 分页
+    total = query.count()
     offset = (page - 1) * page_size
-    leads = query.order_by(desc(Lead.created_at)).offset(offset).limit(page_size).all()
+    # 按置信度降序 + 创建时间降序排序
+    leads = (
+        query.order_by(desc(Lead.confidence), desc(Lead.created_at))
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
 
     return {"total": total, "page": page, "page_size": page_size, "data": leads}
-
-
-@router.get("/{lead_id}", response_model=LeadResponse)
-def get_lead(
-    lead_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """获取线索详情"""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="线索不存在")
-
-    return lead
-
-
-@router.post("", response_model=LeadResponse, status_code=201)
-def create_lead(
-    lead_data: LeadCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """创建线索"""
-    lead = Lead(**lead_data.model_dump())
-    db.add(lead)
-    db.commit()
-    db.refresh(lead)
-
-    return lead
-
-
-@router.patch("/{lead_id}", response_model=LeadResponse)
-def update_lead(
-    lead_id: int,
-    lead_data: LeadUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """更新线索"""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="线索不存在")
-
-    # 更新字段
-    update_data = lead_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(lead, field, value)
-
-    db.commit()
-    db.refresh(lead)
-
-    return lead
-
-
-@router.delete("/{lead_id}", status_code=204)
-def delete_lead(
-    lead_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """删除线索"""
-    lead = db.query(Lead).filter(Lead.id == lead_id).first()
-    if not lead:
-        raise HTTPException(status_code=404, detail="线索不存在")
-
-    db.delete(lead)
-    db.commit()
-
-    return None
 
 
 @router.get("/stats/dashboard", response_model=DashboardResponse)
@@ -142,25 +87,21 @@ def get_dashboard_stats(
     week_start = today_start - timedelta(days=now.weekday())
     month_start = today_start.replace(day=1)
 
-    # 统计各时间段的线索数
     today_leads = db.query(Lead).filter(Lead.created_at >= today_start).count()
     week_leads = db.query(Lead).filter(Lead.created_at >= week_start).count()
     month_leads = db.query(Lead).filter(Lead.created_at >= month_start).count()
     total_leads = db.query(Lead).count()
 
-    # 按类型统计
     leads_by_type = {}
     for event_type in LeadEventTypeEnum:
         count = db.query(Lead).filter(Lead.event_type == event_type).count()
         leads_by_type[event_type.value] = count
 
-    # 按来源统计
     sources = (
         db.query(Lead.source_name, func.count(Lead.id)).group_by(Lead.source_name).all()
     )
     leads_by_source = {source: count for source, count in sources}
 
-    # 最近线索
     recent_leads = db.query(Lead).order_by(desc(Lead.created_at)).limit(5).all()
 
     return {
@@ -176,7 +117,7 @@ def get_dashboard_stats(
 
 @router.get("/export")
 def export_leads(
-    format: str = Query("csv", regex="^(csv|excel)$"),
+    format: str = Query("csv", pattern="^(csv|excel)$"),
     status: Optional[LeadStatusEnum] = None,
     event_type: Optional[LeadEventTypeEnum] = None,
     keyword: Optional[str] = None,
@@ -201,11 +142,9 @@ def export_leads(
 
     leads = query.order_by(desc(Lead.created_at)).all()
 
-    # 生成CSV
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # 写入表头
     writer.writerow(
         [
             "ID",
@@ -222,7 +161,6 @@ def export_leads(
         ]
     )
 
-    # 写入数据
     for lead in leads:
         writer.writerow(
             [
@@ -243,7 +181,6 @@ def export_leads(
         )
 
     output.seek(0)
-
     filename = f"leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
     return StreamingResponse(
@@ -251,6 +188,21 @@ def export_leads(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.post("", response_model=LeadResponse, status_code=201)
+def create_lead(
+    lead_data: LeadCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """创建线索"""
+    lead = Lead(**lead_data.model_dump())
+    db.add(lead)
+    db.commit()
+    db.refresh(lead)
+
+    return lead
 
 
 @router.post("/batch/update-status", response_model=BatchOperationResponse)
@@ -320,3 +272,56 @@ def batch_delete(
         "updated_count": 0,
         "deleted_count": deleted_count,
     }
+
+
+@router.get("/{lead_id}", response_model=LeadResponse)
+def get_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取线索详情"""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="线索不存在")
+
+    return lead
+
+
+@router.patch("/{lead_id}", response_model=LeadResponse)
+def update_lead(
+    lead_id: int,
+    lead_data: LeadUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """更新线索"""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="线索不存在")
+
+    update_data = lead_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(lead, field, value)
+
+    db.commit()
+    db.refresh(lead)
+
+    return lead
+
+
+@router.delete("/{lead_id}", status_code=204)
+def delete_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """删除线索"""
+    lead = db.query(Lead).filter(Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="线索不存在")
+
+    db.delete(lead)
+    db.commit()
+
+    return None

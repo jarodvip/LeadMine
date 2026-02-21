@@ -72,6 +72,8 @@ class DataSourceUpdate(BaseModel):
 class DataSourceResponse(DataSourceBase):
     id: int
     last_crawl_at: Optional[datetime]
+    today_count: int = 0
+    success_rate: int = 0
     created_at: datetime
 
     class Config:
@@ -213,6 +215,15 @@ class PaginatedResponse(BaseModel):
     page: int
     page_size: int
     data: List[LeadResponse]
+
+
+class ArticlePaginatedResponse(BaseModel):
+    """文章分页响应"""
+
+    total: int
+    page: int
+    page_size: int
+    data: List[ArticleResponse]
 
 
 # 批量操作请求

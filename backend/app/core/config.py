@@ -4,9 +4,9 @@
 
 import os
 import warnings
-from typing import List
+from typing import List, Union
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -40,10 +40,19 @@ class Settings(BaseSettings):
     # RSSHub 配置
     rsshub_url: str = Field(default="http://localhost:1200", env="RSSHUB_URL")
 
-    # CORS 配置 - 默认只允许本地开发环境
-    cors_origins: List[str] = Field(
-        default=["http://localhost:8501", "http://localhost:3000"], env="CORS_ORIGINS"
+    # CORS 配置 - 支持逗号分隔的字符串或JSON数组
+    cors_origins: Union[str, List[str]] = Field(
+        default="http://localhost:8501,http://localhost:8502,http://localhost:3000",
+        env="CORS_ORIGINS",
     )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """解析CORS配置，支持逗号分隔的字符串"""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # 管理员初始密码
     admin_password: str = Field(default="", env="ADMIN_PASSWORD")

@@ -59,7 +59,7 @@
             <div class="source-meta">
               <div class="meta-item">
                 <div class="meta-label">抓取间隔</div>
-                <div class="meta-value">{{ source.interval_minutes || 30 }}分钟</div>
+                <div class="meta-value">{{ source.crawl_interval || 30 }}分钟</div>
               </div>
               <div class="meta-item">
                 <div class="meta-label">今日抓取</div>
@@ -67,7 +67,7 @@
               </div>
               <div class="meta-item">
                 <div class="meta-label">最后抓取</div>
-                <div class="meta-value">{{ formatTime(source.last_crawled_at) }}</div>
+                <div class="meta-value">{{ formatTime(source.last_crawl_at) }}</div>
               </div>
               <div class="meta-item">
                 <div class="meta-label">成功率</div>
@@ -215,7 +215,7 @@ const editSource = (source) => {
   sourceForm.name = source.name
   sourceForm.type = source.type
   sourceForm.url = source.url || ''
-  sourceForm.interval_minutes = source.interval_minutes || 30
+  sourceForm.interval_minutes = source.crawl_interval || 30
   sourceForm.enabled = source.enabled
   showAddModal.value = true
 }

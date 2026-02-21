@@ -62,7 +62,7 @@
                 <td>{{ formatDateTime(article.crawled_at) }}</td>
                 <td>
                   <div class="action-btns">
-                    <a :href="article.url" target="_blank" class="action-btn">查看原文</a>
+                    <a :href="article.source_url" target="_blank" class="action-btn">查看原文</a>
                   </div>
                 </td>
               </tr>

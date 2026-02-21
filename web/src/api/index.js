@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-// API 请求地址 - 部署时改为服务器地址
-const API_BASE_URL = 'http://180.76.184.204:8000/api/v1'
+// API 请求地址 - 本地开发使用 localhost，部署时改为服务器地址
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 
 const api = axios.create({
   baseURL: API_BASE_URL,

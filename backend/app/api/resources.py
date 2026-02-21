@@ -8,10 +8,10 @@ from app.core.security import get_current_user
 from app.models import Article, DataSource, SourceTypeEnum, ArticleStatusEnum, User
 from app.schemas import (
     ArticleResponse,
+    ArticlePaginatedResponse,
     DataSourceCreate,
     DataSourceUpdate,
     DataSourceResponse,
-    PaginatedResponse,
 )
 
 router_article = APIRouter(prefix="/articles", tags=["文章"])
@@ -19,15 +19,15 @@ router_source = APIRouter(prefix="/sources", tags=["数据源"])
 
 
 # 文章相关接口
-@router_article.get("", response_model=PaginatedResponse)
+@router_article.get("", response_model=ArticlePaginatedResponse)
 def get_articles(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    source_name: Optional[str] = None,
-    category: Optional[str] = None,
-    keyword: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    source_name: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    keyword: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -74,6 +74,8 @@ def get_sources(
     current_user: User = Depends(get_current_user),
 ):
     """获取数据源列表"""
+    from datetime import datetime, date
+
     query = db.query(DataSource)
 
     if source_type:
@@ -81,7 +83,42 @@ def get_sources(
     if enabled is not None:
         query = query.filter(DataSource.enabled == enabled)
 
-    return query.order_by(DataSource.name).all()
+    sources = query.order_by(DataSource.name).all()
+
+    # 添加统计信息
+    today = date.today()
+    today_start = datetime.combine(today, datetime.min.time())
+
+    result = []
+    for source in sources:
+        # 统计今日抓取数量
+        today_count = (
+            db.query(Article)
+            .filter(
+                Article.source_name == source.name, Article.crawled_at >= today_start
+            )
+            .count()
+        )
+
+        # 计算成功率（简化：基于今日是否有数据）
+        success_rate = 100 if today_count > 0 else (0 if source.last_crawl_at else 0)
+
+        source_dict = {
+            "id": source.id,
+            "name": source.name,
+            "type": source.type,
+            "url": source.url,
+            "config": source.config,
+            "crawl_interval": source.crawl_interval,
+            "enabled": source.enabled,
+            "last_crawl_at": source.last_crawl_at,
+            "today_count": today_count,
+            "success_rate": success_rate,
+            "created_at": source.created_at,
+        }
+        result.append(source_dict)
+
+    return result
 
 
 @router_source.get("/{source_id}", response_model=DataSourceResponse)
