@@ -7,7 +7,7 @@ set -euo pipefail
 
 # 配置（从环境变量读取）
 SERVER_IP="${SERVER_IP:-}"
-SERVER_USER="${SERVER_USER:-deploy}"
+SERVER_USER="${SERVER_USER:-root}"
 APP_DIR="/opt/leadmine"
 SSH_PORT="${SSH_PORT:-22}"
 
@@ -40,13 +40,13 @@ echo "应用目录: ${APP_DIR}"
 
 # 1. 备份现有数据
 echo -e "\n${YELLOW}[1/6] 备份现有数据...${NC}"
-ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
+ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
     if [ -d ${APP_DIR} ] && [ -f ${APP_DIR}/.env ]; then
         BACKUP_DIR=/opt/backups/leadmine-\$(date +%Y%m%d-%H%M%S)
         mkdir -p \${BACKUP_DIR}
         cd ${APP_DIR}
         source .env 2>/dev/null || true
-        docker compose exec -T mysql mysqldump -u root -p\${MYSQL_ROOT_PASSWORD} \${MYSQL_DATABASE} > \${BACKUP_DIR}/database.sql 2>/dev/null || echo '数据库备份跳过'
+        docker-compose exec -T mysql mysqldump -u root -p\${MYSQL_ROOT_PASSWORD} \${MYSQL_DATABASE} > \${BACKUP_DIR}/database.sql 2>/dev/null || echo '数据库备份跳过'
         cp .env \${BACKUP_DIR}/ 2>/dev/null || true
         echo \"备份完成: \${BACKUP_DIR}\"
     else
@@ -56,18 +56,18 @@ ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
 
 # 2. 创建部署目录
 echo -e "\n${YELLOW}[2/6] 创建服务器目录...${NC}"
-ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${APP_DIR}/logs ${APP_DIR}/backup"
+ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${APP_DIR}/logs ${APP_DIR}/backup ${APP_DIR}/web/dist ${APP_DIR}/nginx"
 
 # 3. 上传配置文件
 echo -e "\n${YELLOW}[3/6] 上传配置文件...${NC}"
-scp -P ${SSH_PORT} docker-compose.prod.yml ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/docker-compose.yml
+scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -P ${SSH_PORT} docker-compose.prod.yml ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/docker-compose.yml
 
 if [[ ! -f .env.prod ]]; then
     echo -e "${RED}错误: 未找到 .env.prod 文件${NC}"
     exit 1
 fi
 
-scp -P ${SSH_PORT} .env.prod ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/.env
+scp -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -P ${SSH_PORT} .env.prod ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/.env
 
 # 4. 上传代码
 echo -e "\n${YELLOW}[4/6] 上传应用代码...${NC}"
@@ -84,22 +84,26 @@ rsync -avz --delete \
     --exclude='.git' \
     web/dist/ ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/web/dist/
 
+rsync -avz --delete \
+    --exclude='.git' \
+    nginx/ ${SERVER_USER}@${SERVER_IP}:${APP_DIR}/nginx/
+
 # 5. 构建并启动服务
 echo -e "\n${YELLOW}[5/6] 构建并启动服务...${NC}"
-ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
+ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
     cd ${APP_DIR}
-    docker compose down --remove-orphans 2>/dev/null || true
-    docker compose pull
-    docker compose up -d --build
+    docker-compose down --remove-orphans 2>/dev/null || true
+    docker-compose pull
+    docker-compose up -d --build
     sleep 10
-    docker compose ps
+    docker-compose ps
 "
 
 # 6. 健康检查
 echo -e "\n${YELLOW}[6/6] 执行健康检查...${NC}"
-HEALTH_STATUS=$(ssh -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
+HEALTH_STATUS=$(ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p ${SSH_PORT} ${SERVER_USER}@${SERVER_IP} "
     cd ${APP_DIR}
-    docker compose exec -T backend wget -qO- http://localhost:8000/health 2>/dev/null || echo 'FAILED'
+    docker-compose exec -T backend wget -qO- http://localhost:8000/health 2>/dev/null || echo 'FAILED'
 ")
 
 if [[ "$HEALTH_STATUS" == *"ok"* ]] || [[ "$HEALTH_STATUS" == *"\"status\":\"ok\""* ]]; then

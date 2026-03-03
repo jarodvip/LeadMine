@@ -4,12 +4,17 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.logging import get_logger
 from app.api import api_router
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
+    logger.info("应用启动中...")
+
     # 启动时
     init_db()
     create_default_admin()
@@ -23,27 +28,38 @@ async def lifespan(app: FastAPI):
 
         scheduler.start()
     except Exception as e:
-        print(f"调度器启动失败（可选服务）: {e}")
+        logger.warning(f"调度器启动失败（可选服务）: {e}")
+
+    # 启动告警服务（生产环境）
+    if not settings.debug:
+        try:
+            from app.services.alert import alert_service
+
+            alert_service.start()
+        except Exception as e:
+            logger.warning(f"告警服务启动失败: {e}")
+
+    logger.info("应用启动完成")
 
     yield
 
     # 关闭时
+    logger.info("应用关闭中...")
     try:
         from app.services.scheduler import scheduler
 
         scheduler.stop()
     except Exception:
         pass
+    logger.info("应用已关闭")
 
 
 def create_default_admin():
     """创建默认管理员账户"""
     import secrets
-    from sqlalchemy.orm import Session
     from app.core.database import SessionLocal
     from app.core.security import get_password_hash
     from app.models import User
-    from app.core.config import settings
 
     db = SessionLocal()
     try:
@@ -53,11 +69,9 @@ def create_default_admin():
             # 从环境变量读取或使用随机生成的强密码
             admin_password = settings.admin_password or secrets.token_urlsafe(16)
             if not settings.admin_password:
-                print(f"=" * 60)
-                print(f"WARNING: ADMIN_PASSWORD 未设置，已生成临时密码")
-                print(f"临时密码: {admin_password}")
-                print(f"请立即登录并修改密码！")
-                print(f"=" * 60)
+                logger.warning("ADMIN_PASSWORD 未设置，已生成临时密码")
+                logger.warning(f"临时密码: {admin_password}")
+                logger.warning("请立即登录并修改密码！")
 
             admin = User(
                 username="admin",
@@ -67,7 +81,7 @@ def create_default_admin():
             )
             db.add(admin)
             db.commit()
-            print("默认管理员账户已创建")
+            logger.info("默认管理员账户已创建")
     finally:
         db.close()
 
@@ -105,9 +119,9 @@ def create_default_sources():
                 db.add(source)
 
         db.commit()
-        print("默认数据源已创建")
+        logger.info("默认数据源已创建")
     except Exception as e:
-        print(f"创建默认数据源失败: {e}")
+        logger.error(f"创建默认数据源失败: {e}")
     finally:
         db.close()
 
@@ -127,6 +141,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 限流中间件（生产环境启用）
+if not settings.debug:
+    from app.middleware.rate_limit import RateLimitMiddleware
+
+    app.add_middleware(RateLimitMiddleware)
+
+# 缓存中间件（生产环境启用）
+if not settings.debug:
+    from app.middleware.cache import CacheMiddleware
+
+    app.add_middleware(CacheMiddleware)
+
+# 设置监控指标
+from app.services.metrics import setup_metrics_routes, setup_metrics_middleware
+
+setup_metrics_routes(app)
+setup_metrics_middleware(app)
 
 # 挂载API路由
 app.include_router(api_router)

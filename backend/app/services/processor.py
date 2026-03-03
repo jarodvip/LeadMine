@@ -3,11 +3,10 @@
 """
 
 from typing import List, Dict
-from datetime import datetime
 import logging
 
 from app.core.database import SessionLocal
-from app.models import Article, Lead, LeadEventTypeEnum
+from app.models import Article, Lead
 from app.processors.cleaner import ArticleCleaner
 from app.processors.deduplicator import deduplicator
 from app.processors.nlp_processor import nlp_processor

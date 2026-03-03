@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_, func
-from typing import List, Optional
+from sqlalchemy import desc, func
+from typing import Optional
 from datetime import datetime, timedelta
 import csv
 import io
@@ -16,7 +16,6 @@ from app.schemas import (
     LeadResponse,
     PaginatedResponse,
     DashboardResponse,
-    LeadsByType,
     BatchUpdateStatusRequest,
     BatchAssignRequest,
     BatchDeleteRequest,

@@ -2,7 +2,6 @@
 企业信息补充服务 - 基于公开渠道
 """
 
-import requests
 from typing import Optional, Dict
 import logging
 

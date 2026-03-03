@@ -34,6 +34,12 @@ def get_db():
 
 def init_db():
     """初始化数据库表"""
-    from app.models.models import Article, Lead, DataSource, User, Keyword, LeadRule
+    # 导入所有模型以确保 SQLAlchemy 知道要创建哪些表
+    from app.models.models import Article  # noqa: F401
+    from app.models.models import Lead  # noqa: F401
+    from app.models.models import DataSource  # noqa: F401
+    from app.models.models import User  # noqa: F401
+    from app.models.models import Keyword  # noqa: F401
+    from app.models.models import LeadRule  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

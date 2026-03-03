@@ -538,7 +538,6 @@ class NLPProcessor:
             "制造": ["制造", "工厂", "生产", "供应链", "工业", "机器人"],
         }
 
-        keywords = self.extract_keywords(text, top_k=20)
         text_lower = text.lower()
 
         for category, words in category_rules.items():

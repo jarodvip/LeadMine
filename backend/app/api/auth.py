@@ -11,7 +11,7 @@ from app.core.security import (
     get_current_user,
 )
 from app.models import User
-from app.schemas import UserCreate, UserResponse, LoginRequest, TokenResponse
+from app.schemas import UserCreate, UserResponse, TokenResponse
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["认证"])

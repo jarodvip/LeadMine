@@ -4,7 +4,6 @@
 
 import re
 from typing import List, Dict, Optional
-from datetime import datetime
 import logging
 
 from app.processors.nlp_processor import nlp_processor, KNOWN_COMPANIES

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import auth, leads, resources, processor
+from app.api import auth, leads, resources, processor, alerts
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -9,3 +9,4 @@ api_router.include_router(leads.router)
 api_router.include_router(resources.router_article)
 api_router.include_router(resources.router_source)
 api_router.include_router(processor.router)
+api_router.include_router(alerts.router)

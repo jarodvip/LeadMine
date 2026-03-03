@@ -3,7 +3,6 @@ SimHash去重服务
 """
 
 import redis
-from typing import Optional, Set
 from simhash import Simhash
 import logging
 from app.core.config import settings

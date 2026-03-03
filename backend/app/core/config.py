@@ -2,7 +2,6 @@
 应用配置
 """
 
-import os
 import warnings
 from typing import List, Union
 from pydantic_settings import BaseSettings

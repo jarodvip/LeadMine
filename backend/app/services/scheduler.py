@@ -1,16 +1,42 @@
 """
-定时任务调度器
+定时任务调度器 - 支持分布式锁
 """
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime
-import logging
+import redis
 
 from app.core.database import SessionLocal
+from app.core.logging import get_logger
+from app.core.config import settings
 from app.models.models import DataSource
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+
+class DistributedLock:
+    """分布式锁（基于 Redis）"""
+
+    def __init__(self, redis_url: str, lock_key: str, ttl: int = 300):
+        self.redis_client = redis.from_url(redis_url)
+        self.lock_key = lock_key
+        self.ttl = ttl
+
+    def acquire(self) -> bool:
+        """获取锁"""
+        try:
+            return self.redis_client.set(self.lock_key, "1", nx=True, ex=self.ttl)
+        except Exception as e:
+            logger.warning(f"获取分布式锁失败: {e}")
+            return True  # 失败时允许执行
+
+    def release(self):
+        """释放锁"""
+        try:
+            self.redis_client.delete(self.lock_key)
+        except Exception as e:
+            logger.warning(f"释放分布式锁失败: {e}")
 
 
 class CrawlScheduler:
@@ -46,7 +72,7 @@ class CrawlScheduler:
         """从数据库加载任务"""
         db = SessionLocal()
         try:
-            sources = db.query(DataSource).filter(DataSource.enabled == True).all()
+            sources = db.query(DataSource).filter(DataSource.enabled == True).all()  # noqa: E712
 
             for source in sources:
                 self.add_crawl_task(source)
@@ -85,8 +111,14 @@ class CrawlScheduler:
             logger.info(f"移除爬虫任务: {job_id}")
 
     def _crawl_source(self, source_id: int):
-        """执行爬取任务"""
+        """执行爬取任务（支持分布式锁）"""
         from scrapers.spider_factory import SpiderFactory
+
+        # 获取分布式锁
+        lock = DistributedLock(settings.redis_url, f"lock:crawl:{source_id}", ttl=300)
+        if not lock.acquire():
+            logger.info(f"爬取任务正在执行中，跳过: source_id={source_id}")
+            return
 
         db = SessionLocal()
         try:
@@ -132,6 +164,7 @@ class CrawlScheduler:
             logger.error(f"爬取任务失败 {source_id}: {e}")
         finally:
             db.close()
+            lock.release()
 
     def trigger_manual_crawl(self, source_id: int):
         """手动触发爬取"""

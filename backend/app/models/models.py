@@ -2,7 +2,6 @@ from app.core.database import Base
 from sqlalchemy import (
     Column,
     Integer,
-    BigInteger,
     String,
     Text,
     DateTime,
