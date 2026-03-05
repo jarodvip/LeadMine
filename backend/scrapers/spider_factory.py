@@ -16,7 +16,9 @@ class SpiderFactory:
 
     SPIDERS = {
         "36kr": Kr36Spider,
+        "36氪": Kr36Spider,
         "huxiu": HuxiuSpider,
+        "虎嗅": HuxiuSpider,
     }
 
     @classmethod
@@ -41,6 +43,8 @@ class SpiderFactory:
             文章列表
         """
         source_type = source_config.get("type")
+        if hasattr(source_type, "value"):
+            source_type = source_type.value
         source_name = source_config.get("name", "")
 
         try:
