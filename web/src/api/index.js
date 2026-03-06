@@ -82,4 +82,21 @@ export const sourcesAPI = {
   triggerCrawl: (id) => api.post(`/sources/${id}/crawl`)
 }
 
+// 用户管理 API
+export const usersAPI = {
+  getList: (params) => api.get('/users', { params }),
+  getDetail: (id) => api.get(`/users/${id}`),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.patch(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
+  resetPassword: (id) => api.post(`/users/${id}/reset-password`)
+}
+
+// 数据处理 API
+export const processorAPI = {
+  enrichLead: (leadId) => api.post(`/processor/leads/${leadId}/enrich`),
+  processArticle: (articleId) => api.post(`/processor/articles/${articleId}/process`),
+  processPending: (limit) => api.post(`/processor/articles/process?limit=${limit}`)
+}
+
 export default api

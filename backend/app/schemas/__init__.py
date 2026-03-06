@@ -217,6 +217,15 @@ class PaginatedResponse(BaseModel):
     data: List[LeadResponse]
 
 
+class UserPaginatedResponse(BaseModel):
+    """用户分页响应"""
+
+    total: int
+    page: int
+    page_size: int
+    data: List[UserResponse]
+
+
 class ArticlePaginatedResponse(BaseModel):
     """文章分页响应"""
 

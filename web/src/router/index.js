@@ -5,6 +5,7 @@ import Leads from '../views/Leads.vue'
 import LeadDetail from '../views/LeadDetail.vue'
 import Articles from '../views/Articles.vue'
 import Sources from '../views/Sources.vue'
+import Users from '../views/Users.vue'
 
 const routes = [
   {
@@ -41,6 +42,12 @@ const routes = [
     path: '/sources',
     name: 'Sources',
     component: Sources,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/users',
+    name: 'Users',
+    component: Users,
     meta: { requiresAuth: true }
   }
 ]

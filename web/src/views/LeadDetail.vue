@@ -70,6 +70,61 @@
                 </div>
               </div>
 
+              <div class="enrichment-section">
+                <div class="section-header">
+                  <span class="info-label">企业信息</span>
+                  <button class="btn btn-outline btn-sm" @click="handleEnrich" :disabled="enriching">
+                    {{ enriching ? '补充中...' : '补充企业信息' }}
+                  </button>
+                </div>
+                <div v-if="lead.enrichment_data" class="enrichment-grid">
+                  <div class="enrich-item" v-if="lead.enrichment_data.legal_person">
+                    <span class="enrich-label">法人</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.legal_person }}</span>
+                  </div>
+                  <div class="enrich-item" v-if="lead.enrichment_data.registered_capital">
+                    <span class="enrich-label">注册资本</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.registered_capital }}</span>
+                  </div>
+                  <div class="enrich-item" v-if="lead.enrichment_data.establishment_date">
+                    <span class="enrich-label">成立日期</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.establishment_date }}</span>
+                  </div>
+                  <div class="enrich-item" v-if="lead.enrichment_data.business_status">
+                    <span class="enrich-label">经营状态</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.business_status }}</span>
+                  </div>
+                  <div class="enrich-item" v-if="lead.enrichment_data.phone">
+                    <span class="enrich-label">电话</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.phone }}</span>
+                  </div>
+                  <div class="enrich-item" v-if="lead.enrichment_data.email">
+                    <span class="enrich-label">邮箱</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.email }}</span>
+                  </div>
+                  <div class="enrich-item full" v-if="lead.enrichment_data.address">
+                    <span class="enrich-label">地址</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.address }}</span>
+                  </div>
+                  <div class="enrich-item full" v-if="lead.enrichment_data.business_scope">
+                    <span class="enrich-label">经营范围</span>
+                    <span class="enrich-value">{{ lead.enrichment_data.business_scope }}</span>
+                  </div>
+                </div>
+                <div v-else class="enrichment-empty">
+                  点击"补充企业信息"获取企业工商数据
+                </div>
+              </div>
+
+              <div class="confidence-section">
+                <div class="confidence-bar">
+                  <div class="confidence-track">
+                    <div class="confidence-fill" :style="{ width: lead.confidence + '%' }"></div>
+                  </div>
+                  <span class="confidence-value">{{ lead.confidence }}</span>
+                </div>
+              </div>
+
               <!-- 状态管理 -->
               <div class="status-section">
                 <div class="info-grid">
@@ -126,7 +181,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Layout from '../components/Layout.vue'
-import { leadsAPI, articlesAPI } from '../api'
+import { leadsAPI, articlesAPI, processorAPI } from '../api'
 
 const route = useRoute()
 const router = useRouter()
@@ -134,6 +189,7 @@ const router = useRouter()
 const loading = ref(true)
 const lead = ref(null)
 const article = ref(null)
+const enriching = ref(false)
 
 const leadData = reactive({
   status: 'new',
@@ -206,6 +262,23 @@ const updateStatus = async () => {
   await saveLead()
 }
 
+const handleEnrich = async () => {
+  if (!lead.value.company_name || lead.value.company_name === '未知') {
+    alert('企业名称无效')
+    return
+  }
+  enriching.value = true
+  try {
+    const res = await processorAPI.enrichLead(lead.value.id)
+    lead.value.enrichment_data = res.data.data
+    alert('企业信息补充成功')
+  } catch (error) {
+    alert('企业信息补充失败')
+  } finally {
+    enriching.value = false
+  }
+}
+
 const exportLead = () => {
   // 导出单条线索
   const data = [
@@ -237,3 +310,52 @@ onMounted(() => {
   fetchLead()
 })
 </script>
+
+<style scoped>
+.enrichment-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.enrichment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.enrich-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.enrich-item.full {
+  grid-column: 1 / -1;
+}
+
+.enrich-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.enrich-value {
+  font-size: 14px;
+  color: #333;
+}
+
+.enrichment-empty {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+</style>

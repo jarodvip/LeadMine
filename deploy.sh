@@ -46,7 +46,8 @@ ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p ${SSH_PORT} ${SERVE
         mkdir -p \${BACKUP_DIR}
         cd ${APP_DIR}
         source .env 2>/dev/null || true
-        docker-compose exec -T mysql mysqldump -u root -p\${MYSQL_ROOT_PASSWORD} \${MYSQL_DATABASE} > \${BACKUP_DIR}/database.sql 2>/dev/null || echo '数据库备份跳过'
+        MYSQL_ROOT_PASSWORD=$(grep MYSQL_ROOT_PASSWORD ${APP_DIR}/.env | cut -d'=' -f2)
+        docker exec leadmine_mysql mysqldump -u root -p"${MYSQL_ROOT_PASSWORD}" ${MYSQL_DATABASE} > ${BACKUP_DIR}/database.sql 2>/dev/null || echo '数据库备份跳过'
         cp .env \${BACKUP_DIR}/ 2>/dev/null || true
         echo \"备份完成: \${BACKUP_DIR}\"
     else

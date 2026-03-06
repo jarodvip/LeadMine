@@ -5,6 +5,8 @@
 from typing import Dict, List
 from .spiders.kr36 import Kr36Spider, crawl_kr36
 from .spiders.huxiu import HuxiuSpider, crawl_huxiu
+from .spiders.tmt import TMTSpider, crawl_tmt
+from .spiders.cyzone import CyzoneSpider, crawl_cyzone
 from app.processors.rss_parser import RSSParser
 import logging
 
@@ -19,6 +21,10 @@ class SpiderFactory:
         "36氪": Kr36Spider,
         "huxiu": HuxiuSpider,
         "虎嗅": HuxiuSpider,
+        "tmt": TMTSpider,
+        "钛媒体": TMTSpider,
+        "cyzone": CyzoneSpider,
+        "创业邦": CyzoneSpider,
     }
 
     @classmethod
