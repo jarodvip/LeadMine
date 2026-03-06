@@ -120,6 +120,9 @@
         <div class="form-group">
           <label class="form-label">URL</label>
           <input type="text" class="form-input" v-model="sourceForm.url" placeholder="网站URL或RSS地址">
+          <div v-if="sourceForm.type === 'rss'" class="form-help">
+            微信公众号请使用RSSHub: https://rsshub.app/wechat/mp/公众号ID
+          </div>
         </div>
         
         <div class="form-group">
@@ -351,5 +354,11 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   color: var(--color-secondary);
+}
+
+.form-help {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
 }
 </style>

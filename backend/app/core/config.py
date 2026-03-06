@@ -60,6 +60,20 @@ class Settings(BaseSettings):
     crawl_timeout: int = 30
     max_concurrent_crawls: int = 5
 
+    # 通知配置
+    smtp_host: str = Field(default="", env="SMTP_HOST")
+    smtp_port: int = Field(default=587, env="SMTP_PORT")
+    smtp_user: str = Field(default="", env="SMTP_USER")
+    smtp_password: str = Field(default="", env="SMTP_PASSWORD")
+    smtp_from: str = Field(default="", env="SMTP_FROM")
+    notify_emails: str = Field(default="", env="NOTIFY_EMAILS")
+    webhook_url: str = Field(default="", env="WEBHOOK_URL")
+    webhook_secret: str = Field(default="", env="WEBHOOK_SECRET")
+
+    # 爱企查API配置
+    aiqicha_key: str = Field(default="", env="AIQICHA_KEY")
+    aiqicha_secret: str = Field(default="", env="AIQICHA_SECRET")
+
     class Config:
         env_file = ".env"
         extra = "allow"
@@ -74,7 +88,7 @@ if (
     or settings.jwt_secret == "your-secret-key-change-in-production"
 ):
     warnings.warn(
-        "WARNING: JWT_SECRET 未设置或使用默认弱密钥！"
-        "请设置强密钥: export JWT_SECRET=\$(openssl rand -base64 64)",
+        r"WARNING: JWT_SECRET 未设置或使用默认弱密钥！"
+        r"请设置强密钥: export JWT_SECRET=$(openssl rand -base64 64)",
         RuntimeWarning,
     )
