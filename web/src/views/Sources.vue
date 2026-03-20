@@ -285,6 +285,7 @@ const saveSource = async () => {
 
     const data = {
       name: sourceForm.name,
+      type: sourceForm.type,
       url: sourceForm.url,
       crawl_interval: sourceForm.interval_minutes,
       enabled: sourceForm.enabled,
@@ -294,7 +295,6 @@ const saveSource = async () => {
     if (editingSource.value) {
       await sourcesAPI.update(editingSource.value.id, data)
     } else {
-      data.type = sourceForm.type
       await sourcesAPI.create(data)
     }
     closeModal()

@@ -72,6 +72,7 @@ class DataSourceCreate(DataSourceBase):
 
 class DataSourceUpdate(BaseModel):
     name: Optional[str] = None
+    type: Optional[SourceTypeEnum] = None
     url: Optional[str] = None
     config: Optional[dict] = None
     crawl_interval: Optional[int] = None
