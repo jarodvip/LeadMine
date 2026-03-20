@@ -8,11 +8,12 @@ import logging
 
 from app.core.database import SessionLocal
 from app.models import Article, DataSource, SourceTypeEnum
+from app.processors.topic_filter import matches_topic
 
 logger = logging.getLogger(__name__)
 
 
-def save_articles(articles: List[Dict], source_name: str) -> int:
+def save_articles(articles: List[Dict], source_name: str, source: DataSource = None) -> int:
     """
     保存文章到数据库
     Args:
@@ -28,9 +29,12 @@ def save_articles(articles: List[Dict], source_name: str) -> int:
     saved_count = 0
 
     try:
-        # 获取来源类型
-        source = db.query(DataSource).filter(DataSource.name == source_name).first()
+        # 获取来源类型与主题配置
+        if source is None:
+            source = db.query(DataSource).filter(DataSource.name == source_name).first()
         source_type = source.type if source else SourceTypeEnum.news
+        topic_keywords = source.topic_keywords if source else None
+        topic_match_mode = source.topic_match_mode if source else None
 
         for article_data in articles:
             # 检查是否已存在（根据URL）
@@ -41,6 +45,14 @@ def save_articles(articles: List[Dict], source_name: str) -> int:
             )
 
             if existing:
+                continue
+
+            if not matches_topic(
+                article_data.get("title"),
+                article_data.get("content"),
+                topic_keywords,
+                topic_match_mode,
+            ):
                 continue
 
             # 创建新文章

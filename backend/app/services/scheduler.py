@@ -29,7 +29,7 @@ class DistributedLock:
             return self.redis_client.set(self.lock_key, "1", nx=True, ex=self.ttl)
         except Exception as e:
             logger.warning(f"获取分布式锁失败: {e}")
-            return True  # 失败时允许执行
+            return False
 
     def release(self):
         """释放锁"""
@@ -114,11 +114,29 @@ class CrawlScheduler:
         """执行爬取任务（支持分布式锁）"""
         from scrapers.spider_factory import SpiderFactory
 
+        result = {
+            "source_id": source_id,
+            "source_name": None,
+            "status": "success",
+            "message": "抓取完成",
+            "fetched_count": 0,
+            "saved_count": 0,
+            "process_result": {
+                "total": 0,
+                "success": 0,
+                "failed": 0,
+                "duplicates": 0,
+                "leads_extracted": 0,
+            },
+        }
+
         # 获取分布式锁
         lock = DistributedLock(settings.redis_url, f"lock:crawl:{source_id}", ttl=300)
         if not lock.acquire():
             logger.info(f"爬取任务正在执行中，跳过: source_id={source_id}")
-            return
+            result["status"] = "skipped"
+            result["message"] = "任务正在执行中，已跳过"
+            return result
 
         db = SessionLocal()
         try:
@@ -126,8 +144,11 @@ class CrawlScheduler:
 
             if not source or not source.enabled:
                 logger.warning(f"数据源不存在或已禁用: {source_id}")
-                return
+                result["status"] = "skipped"
+                result["message"] = "数据源不存在或已禁用"
+                return result
 
+            result["source_name"] = source.name
             logger.info(f"开始爬取: {source.name}")
 
             # 执行爬取
@@ -139,11 +160,13 @@ class CrawlScheduler:
                     "config": source.config,
                 }
             )
+            result["fetched_count"] = len(articles)
 
             # 保存文章到数据库
             from app.services.article_service import save_articles
 
-            saved_count = save_articles(articles, source.name)
+            saved_count = save_articles(articles, source.name, source=source)
+            result["saved_count"] = saved_count
 
             # 更新最后抓取时间
             source.last_crawl_at = datetime.now()
@@ -157,18 +180,24 @@ class CrawlScheduler:
             if saved_count > 0:
                 from app.services.processor import data_processor
 
-                result = data_processor.process_pending_articles(limit=50)
-                logger.info(f"文章处理完成: {result}")
+                process_result = data_processor.process_pending_articles(limit=50)
+                result["process_result"] = process_result
+                logger.info(f"文章处理完成: {process_result}")
+
+            return result
 
         except Exception as e:
             logger.error(f"爬取任务失败 {source_id}: {e}")
+            result["status"] = "failed"
+            result["message"] = str(e)
+            return result
         finally:
             db.close()
             lock.release()
 
     def trigger_manual_crawl(self, source_id: int):
         """手动触发爬取"""
-        self._crawl_source(source_id)
+        return self._crawl_source(source_id)
 
 
 # 全局调度器实例

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from typing import List, Optional
 
 from app.core.database import get_db
@@ -89,16 +89,22 @@ def get_sources(
     today = date.today()
     today_start = datetime.combine(today, datetime.min.time())
 
+    # 一次聚合查询统计今日抓取数量，避免 N+1
+    source_names = [source.name for source in sources]
+    counts_by_source = {}
+    if source_names:
+        count_rows = (
+            db.query(Article.source_name, func.count(Article.id))
+            .filter(Article.source_name.in_(source_names), Article.crawled_at >= today_start)
+            .group_by(Article.source_name)
+            .all()
+        )
+        counts_by_source = {name: count for name, count in count_rows}
+
     result = []
     for source in sources:
         # 统计今日抓取数量
-        today_count = (
-            db.query(Article)
-            .filter(
-                Article.source_name == source.name, Article.crawled_at >= today_start
-            )
-            .count()
-        )
+        today_count = counts_by_source.get(source.name, 0)
 
         # 计算成功率（简化：基于今日是否有数据）
         success_rate = 100 if today_count > 0 else (0 if source.last_crawl_at else 0)
@@ -112,6 +118,8 @@ def get_sources(
             "crawl_interval": source.crawl_interval,
             "enabled": source.enabled,
             "last_crawl_at": source.last_crawl_at,
+            "topic_keywords": source.topic_keywords,
+            "topic_match_mode": source.topic_match_mode,
             "today_count": today_count,
             "success_rate": success_rate,
             "created_at": source.created_at,
@@ -230,6 +238,10 @@ def trigger_crawl(
     # 触发爬虫任务
     from app.services.scheduler import scheduler
 
-    scheduler.trigger_manual_crawl(source_id)
+    crawl_result = scheduler.trigger_manual_crawl(source_id)
 
-    return {"message": "抓取任务已触发", "source_id": source_id}
+    return {
+        "message": "抓取任务完成",
+        "source_id": source_id,
+        "result": crawl_result,
+    }

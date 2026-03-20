@@ -14,7 +14,8 @@ class TestScheduler:
         from app.services.scheduler import CrawlScheduler
 
         scheduler = CrawlScheduler()
-        return scheduler
+        with patch.object(scheduler, "_load_tasks_from_db"):
+            yield scheduler
 
     def test_scheduler_start(self, scheduler):
         """测试启动调度器"""

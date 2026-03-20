@@ -73,6 +73,16 @@
                 <div class="meta-label">成功率</div>
                 <div class="meta-value">{{ source.success_rate || 0 }}%</div>
               </div>
+              <div class="meta-item">
+                <div class="meta-label">主题关键词</div>
+                <div class="meta-value topic-value" :title="formatTopicKeywords(source.topic_keywords)">
+                  {{ formatTopicKeywords(source.topic_keywords) }}
+                </div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">匹配模式</div>
+                <div class="meta-value">{{ source.topic_match_mode === 'all' ? '全部匹配' : '任一匹配' }}</div>
+              </div>
             </div>
           </div>
           <div class="source-card-footer">
@@ -129,6 +139,25 @@
           <label class="form-label">抓取间隔(分钟)</label>
           <input type="number" class="form-input" v-model.number="sourceForm.interval_minutes" placeholder="30">
         </div>
+
+        <div class="form-group">
+          <label class="form-label">主题关键词</label>
+          <input
+            type="text"
+            class="form-input"
+            v-model="sourceForm.topic_keywords_text"
+            placeholder="多个关键词用英文逗号分隔，如：化妆品,彩妆,护肤"
+          >
+          <div class="form-help">为空表示不过滤主题</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">匹配模式</label>
+          <select class="form-select" v-model="sourceForm.topic_match_mode">
+            <option value="any">任一匹配</option>
+            <option value="all">全部匹配</option>
+          </select>
+        </div>
         
         <div class="modal-actions">
           <button class="btn btn-outline" @click="closeModal">取消</button>
@@ -159,7 +188,9 @@ const sourceForm = reactive({
   type: 'news',
   url: '',
   interval_minutes: 30,
-  enabled: true
+  enabled: true,
+  topic_keywords_text: '',
+  topic_match_mode: 'any'
 })
 
 const typeLabels = {
@@ -190,12 +221,17 @@ const formatTime = (time) => {
   const now = new Date()
   const diff = now - date
   const minutes = Math.floor(diff / 60000)
-  
+
   if (minutes < 1) return '刚刚'
   if (minutes < 60) return `${minutes}分钟前`
   const hours = Math.floor(minutes / 60)
   if (hours < 24) return `${hours}小时前`
   return `${Math.floor(hours / 24)}天前`
+}
+
+const formatTopicKeywords = (keywords) => {
+  if (!Array.isArray(keywords) || keywords.length === 0) return '未设置'
+  return keywords.join(', ')
 }
 
 const fetchSources = async () => {
@@ -221,6 +257,10 @@ const editSource = (source) => {
   sourceForm.url = source.url || ''
   sourceForm.interval_minutes = source.crawl_interval || 30
   sourceForm.enabled = source.enabled
+  sourceForm.topic_keywords_text = Array.isArray(source.topic_keywords)
+    ? source.topic_keywords.join(',')
+    : ''
+  sourceForm.topic_match_mode = source.topic_match_mode || 'any'
   showAddModal.value = true
 }
 
@@ -232,14 +272,30 @@ const closeModal = () => {
   sourceForm.url = ''
   sourceForm.interval_minutes = 30
   sourceForm.enabled = true
+  sourceForm.topic_keywords_text = ''
+  sourceForm.topic_match_mode = 'any'
 }
 
 const saveSource = async () => {
   try {
+    const topicKeywords = (sourceForm.topic_keywords_text || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
+
+    const data = {
+      name: sourceForm.name,
+      url: sourceForm.url,
+      crawl_interval: sourceForm.interval_minutes,
+      enabled: sourceForm.enabled,
+      topic_keywords: topicKeywords,
+      topic_match_mode: sourceForm.topic_match_mode
+    }
     if (editingSource.value) {
-      await sourcesAPI.update(editingSource.value.id, sourceForm)
+      await sourcesAPI.update(editingSource.value.id, data)
     } else {
-      await sourcesAPI.create(sourceForm)
+      data.type = sourceForm.type
+      await sourcesAPI.create(data)
     }
     closeModal()
     fetchSources()
@@ -259,8 +315,21 @@ const toggleSource = async (source) => {
 
 const triggerCrawl = async (sourceId) => {
   try {
-    await sourcesAPI.triggerCrawl(sourceId)
-    alert('抓取任务已触发')
+    const res = await sourcesAPI.triggerCrawl(sourceId)
+    const result = res.data?.result || {}
+    const processResult = result.process_result || {}
+
+    const summary = [
+      `抓取完成：${result.source_name || sourceId}`,
+      `抓取 ${result.fetched_count || 0} 篇，入库 ${result.saved_count || 0} 篇，提取线索 ${processResult.leads_extracted || 0} 条`
+    ]
+
+    if (result.status && result.status !== 'success') {
+      summary.push(`状态：${result.status}（${result.message || '无详情'}）`)
+    }
+
+    alert(summary.join('\n'))
+    fetchSources()
   } catch (error) {
     alert('触发失败: ' + (error.response?.data?.detail || error.message))
   }
@@ -354,6 +423,13 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   color: var(--color-secondary);
+}
+
+.topic-value {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .form-help {

@@ -23,7 +23,7 @@ from app.models.models import Base
 from app.core.database import get_db
 from app.main import app
 
-# 使用 SQLite 内存数据库进行测试
+# 使用 SQLite 文件数据库进行测试
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -36,7 +36,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 def db():
     """
     创建测试数据库会话
-    每个测试函数执行前创建表，执行后删除表
+    每个测试函数执行前重建表，执行后删除表
     """
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)

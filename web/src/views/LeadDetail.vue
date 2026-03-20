@@ -70,6 +70,23 @@
                 </div>
               </div>
 
+              <div class="score-section">
+                <div class="score-grid">
+                  <div class="score-item">
+                    <div class="info-label">线索等级</div>
+                    <span class="grade-tag" :class="getGradeClass(lead.grade)">{{ lead.grade || '-' }}</span>
+                  </div>
+                  <div class="score-item">
+                    <div class="info-label">匹配评分</div>
+                    <div class="score-value">{{ lead.score ?? 0 }}</div>
+                  </div>
+                </div>
+                <div class="follow-up-box" v-if="lead.follow_up_hint">
+                  <div class="info-label">跟进建议</div>
+                  <div class="follow-up-value">{{ lead.follow_up_hint }}</div>
+                </div>
+              </div>
+
               <div class="enrichment-section">
                 <div class="section-header">
                   <span class="info-label">企业信息</span>
@@ -116,16 +133,6 @@
                 </div>
               </div>
 
-              <div class="confidence-section">
-                <div class="confidence-bar">
-                  <div class="confidence-track">
-                    <div class="confidence-fill" :style="{ width: lead.confidence + '%' }"></div>
-                  </div>
-                  <span class="confidence-value">{{ lead.confidence }}</span>
-                </div>
-              </div>
-
-              <!-- 状态管理 -->
               <div class="status-section">
                 <div class="info-grid">
                   <div class="form-group">
@@ -166,7 +173,7 @@
                 {{ article.title }}
               </h3>
               <div class="source-summary">{{ article.content?.slice(0, 500) }}...</div>
-              <a :href="article.url" target="_blank" class="source-link">
+              <a :href="article.source_url" target="_blank" class="source-link">
                 查看原文 →
               </a>
             </div>
@@ -209,6 +216,13 @@ const leadTypes = {
 
 const getTypeLabel = (type) => leadTypes[type] || type
 
+const getGradeClass = (grade) => {
+  if (grade === 'A') return 'grade-a'
+  if (grade === 'B') return 'grade-b'
+  if (grade === 'C') return 'grade-c'
+  return 'grade-d'
+}
+
 const formatDateTime = (date) => {
   if (!date) return '-'
   return new Date(date).toLocaleString('zh-CN')
@@ -225,7 +239,7 @@ const fetchLead = async () => {
     lead.value = leadRes.data
     leadData.status = leadRes.data.status
     leadData.assigned_to = leadRes.data.assigned_to || ''
-    leadData.notes = leadRes.data.notes || ''
+    leadData.notes = leadRes.data.sales_notes || ''
     
     // 获取来源文章
     if (leadRes.data.source_article_id) {
@@ -250,7 +264,7 @@ const saveLead = async () => {
     await leadsAPI.update(lead.value.id, {
       status: leadData.status,
       assigned_to: leadData.assigned_to,
-      notes: leadData.notes
+      sales_notes: leadData.notes
     })
     alert('保存成功')
   } catch (error) {
@@ -270,7 +284,12 @@ const handleEnrich = async () => {
   enriching.value = true
   try {
     const res = await processorAPI.enrichLead(lead.value.id)
-    lead.value.enrichment_data = res.data.data
+    if (res.data.data) {
+      lead.value.enrichment_data = res.data.data
+    }
+    lead.value.score = res.data.score
+    lead.value.grade = res.data.grade
+    lead.value.follow_up_hint = res.data.follow_up_hint
     alert('企业信息补充成功')
   } catch (error) {
     alert('企业信息补充失败')
@@ -289,6 +308,9 @@ const exportLead = () => {
     ['数据来源', lead.value.source_name],
     ['发布时间', formatDateTime(lead.value.published_at)],
     ['置信度', lead.value.confidence],
+    ['线索等级', lead.value.grade || ''],
+    ['匹配评分', lead.value.score ?? 0],
+    ['跟进建议', lead.value.follow_up_hint || ''],
     ['状态', leadData.status],
     ['分配给', leadData.assigned_to],
     ['备注', leadData.notes]

@@ -6,9 +6,11 @@ from app.models.models import (
     Keyword,
     LeadRule,
     SourceTypeEnum,
+    TopicMatchModeEnum,
     ArticleStatusEnum,
     LeadEventTypeEnum,
     LeadStatusEnum,
+    LeadGradeEnum,
     UserRoleEnum,
 )
 
@@ -20,8 +22,10 @@ __all__ = [
     "Keyword",
     "LeadRule",
     "SourceTypeEnum",
+    "TopicMatchModeEnum",
     "ArticleStatusEnum",
     "LeadEventTypeEnum",
     "LeadStatusEnum",
+    "LeadGradeEnum",
     "UserRoleEnum",
 ]

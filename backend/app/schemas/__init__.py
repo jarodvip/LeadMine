@@ -1,7 +1,14 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
-from app.models import LeadEventTypeEnum, LeadStatusEnum, SourceTypeEnum, UserRoleEnum
+from app.models import (
+    LeadEventTypeEnum,
+    LeadStatusEnum,
+    LeadGradeEnum,
+    SourceTypeEnum,
+    TopicMatchModeEnum,
+    UserRoleEnum,
+)
 from app.processors.cleaner import sanitize_input
 
 
@@ -55,6 +62,8 @@ class DataSourceBase(BaseModel):
     config: Optional[dict] = None
     crawl_interval: int = 60
     enabled: bool = True
+    topic_keywords: Optional[List[str]] = None
+    topic_match_mode: TopicMatchModeEnum = TopicMatchModeEnum.any
 
 
 class DataSourceCreate(DataSourceBase):
@@ -67,6 +76,8 @@ class DataSourceUpdate(BaseModel):
     config: Optional[dict] = None
     crawl_interval: Optional[int] = None
     enabled: Optional[bool] = None
+    topic_keywords: Optional[List[str]] = None
+    topic_match_mode: Optional[TopicMatchModeEnum] = None
 
 
 class DataSourceResponse(DataSourceBase):
@@ -149,6 +160,9 @@ class LeadResponse(LeadBase):
     assigned_to: Optional[str]
     sales_notes: Optional[str]
     enrichment_data: Optional[dict]
+    score: int = 0
+    grade: LeadGradeEnum = LeadGradeEnum.D
+    follow_up_hint: Optional[str] = None
     created_at: datetime
 
     class Config:

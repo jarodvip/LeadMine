@@ -24,6 +24,13 @@ class SourceTypeEnum(str, enum.Enum):
     social = "social"
 
 
+class TopicMatchModeEnum(str, enum.Enum):
+    """主题匹配模式"""
+
+    any = "any"
+    all = "all"
+
+
 class ArticleStatusEnum(str, enum.Enum):
     """文章处理状态"""
 
@@ -52,6 +59,15 @@ class LeadStatusEnum(str, enum.Enum):
     contacted = "contacted"
     converted = "converted"
     invalid = "invalid"
+
+
+class LeadGradeEnum(str, enum.Enum):
+    """线索分级"""
+
+    A = "A"
+    B = "B"
+    C = "C"
+    D = "D"
 
 
 class UserRoleEnum(str, enum.Enum):
@@ -112,6 +128,9 @@ class Lead(Base):
     assigned_to = Column(String(100))
     sales_notes = Column(Text)
     enrichment_data = Column(JSON)
+    score = Column(Integer, default=0, index=True)
+    grade = Column(Enum(LeadGradeEnum), default=LeadGradeEnum.D, index=True)
+    follow_up_hint = Column(Text)
 
     created_at = Column(DateTime, default=func.now(), index=True)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
@@ -132,6 +151,10 @@ class DataSource(Base):
     crawl_interval = Column(Integer, default=60)
     enabled = Column(Boolean, default=True, index=True)
     last_crawl_at = Column(DateTime)
+    topic_keywords = Column(JSON)
+    topic_match_mode = Column(
+        Enum(TopicMatchModeEnum), nullable=False, default=TopicMatchModeEnum.any
+    )
 
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

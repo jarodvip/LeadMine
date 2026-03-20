@@ -3,10 +3,11 @@
 """
 
 from typing import List, Dict
+from datetime import datetime
 import logging
 
 from app.core.database import SessionLocal
-from app.models import Article, Lead
+from app.models import Article, Lead, LeadGradeEnum
 from app.processors.cleaner import ArticleCleaner
 from app.processors.deduplicator import deduplicator
 from app.processors.nlp_processor import nlp_processor
@@ -21,6 +22,67 @@ class DataProcessor:
 
     def __init__(self):
         self.cleaner = ArticleCleaner()
+
+    def _calculate_lead_score_and_advice(self, lead: Lead) -> Dict:
+        """计算线索评分、等级和跟进建议"""
+        score = 0
+
+        event_type_scores = {
+            "financing": 30,
+            "acquisition": 28,
+            "expansion": 20,
+            "product": 18,
+            "procurement": 16,
+            "executive": 12,
+            "policy": 10,
+            "other": 8,
+        }
+        score += event_type_scores.get(getattr(lead.event_type, "value", "other"), 8)
+
+        if lead.event_amount:
+            has_digit = any(char.isdigit() for char in lead.event_amount)
+            score += 20 if has_digit else 10
+
+        enrichment = lead.enrichment_data or {}
+        has_phone = bool(enrichment.get("phone"))
+        has_email = bool(enrichment.get("email"))
+        has_address = bool(enrichment.get("address"))
+        if has_phone and has_email:
+            score += 20
+        elif has_phone or has_email or has_address:
+            score += 10
+
+        if lead.published_at:
+            days = max((datetime.now() - lead.published_at).days, 0)
+            if days <= 1:
+                score += 20
+            elif days <= 3:
+                score += 15
+            elif days <= 7:
+                score += 10
+
+        detail_length = len(lead.event_detail or "")
+        if detail_length >= 100:
+            score += 10
+        elif detail_length >= 30:
+            score += 5
+
+        score = min(score, 100)
+
+        if score >= 80:
+            grade = LeadGradeEnum.A
+            follow_up_hint = "建议24小时内跟进，优先电话联系并结合事件细节切入沟通。"
+        elif score >= 60:
+            grade = LeadGradeEnum.B
+            follow_up_hint = "建议本周内跟进，先建立联系并确认业务需求。"
+        elif score >= 40:
+            grade = LeadGradeEnum.C
+            follow_up_hint = "建议持续观察，等待更多公开动态后再触达。"
+        else:
+            grade = LeadGradeEnum.D
+            follow_up_hint = "当前优先级较低，可纳入线索池定期回看。"
+
+        return {"score": score, "grade": grade, "follow_up_hint": follow_up_hint}
 
     def process_article(self, article_id: int) -> Dict:
         """
@@ -118,6 +180,10 @@ class DataProcessor:
 
                 # 创建线索
                 lead = Lead(**lead_data)
+                scoring = self._calculate_lead_score_and_advice(lead)
+                lead.score = scoring["score"]
+                lead.grade = scoring["grade"]
+                lead.follow_up_hint = scoring["follow_up_hint"]
                 db.add(lead)
                 leads.append(lead)
 
@@ -183,6 +249,11 @@ class DataProcessor:
             if not lead:
                 return {"error": "线索不存在"}
 
+            scoring = self._calculate_lead_score_and_advice(lead)
+            lead.score = scoring["score"]
+            lead.grade = scoring["grade"]
+            lead.follow_up_hint = scoring["follow_up_hint"]
+
             if (
                 enrich_company_info
                 and lead.company_name
@@ -194,11 +265,29 @@ class DataProcessor:
                 if company_info:
                     # 更新线索
                     lead.enrichment_data = company_info
+                    scoring = self._calculate_lead_score_and_advice(lead)
+                    lead.score = scoring["score"]
+                    lead.grade = scoring["grade"]
+                    lead.follow_up_hint = scoring["follow_up_hint"]
                     db.commit()
 
-                    return {"lead_id": lead_id, "enriched": True, "data": company_info}
+                    return {
+                        "lead_id": lead_id,
+                        "enriched": True,
+                        "data": company_info,
+                        "score": lead.score,
+                        "grade": lead.grade,
+                        "follow_up_hint": lead.follow_up_hint,
+                    }
 
-            return {"lead_id": lead_id, "enriched": False}
+            db.commit()
+            return {
+                "lead_id": lead_id,
+                "enriched": False,
+                "score": lead.score,
+                "grade": lead.grade,
+                "follow_up_hint": lead.follow_up_hint,
+            }
 
         finally:
             db.close()

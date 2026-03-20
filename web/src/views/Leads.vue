@@ -69,6 +69,8 @@
                 <th>事件类型</th>
                 <th>事件详情</th>
                 <th>来源</th>
+                <th>等级</th>
+                <th>评分</th>
                 <th>置信度</th>
                 <th>状态</th>
                 <th>发布时间</th>
@@ -82,6 +84,8 @@
                 <td><span class="type-tag" :class="lead.event_type">{{ getTypeLabel(lead.event_type) }}</span></td>
                 <td class="event-detail">{{ lead.event_detail || '-' }}</td>
                 <td class="source-name">{{ lead.source_name || '-' }}</td>
+                <td><span class="grade-tag" :class="getGradeClass(lead.grade)">{{ lead.grade || '-' }}</span></td>
+                <td>{{ lead.score ?? 0 }}</td>
                 <td>
                   <div class="confidence-bar">
                     <div class="confidence-track">
@@ -100,7 +104,7 @@
                 </td>
               </tr>
               <tr v-if="!leads.length">
-                <td colspan="9" style="text-align: center; padding: 40px; color: var(--color-secondary);">
+                <td colspan="11" style="text-align: center; padding: 40px; color: var(--color-secondary);">
                   暂无数据
                 </td>
               </tr>
@@ -171,6 +175,13 @@ const statusLabels = {
 
 const getTypeLabel = (type) => leadTypes[type] || type
 const getStatusLabel = (status) => statusLabels[status] || status
+
+const getGradeClass = (grade) => {
+  if (grade === 'A') return 'grade-a'
+  if (grade === 'B') return 'grade-b'
+  if (grade === 'C') return 'grade-c'
+  return 'grade-d'
+}
 
 const getConfidenceClass = (confidence) => {
   if (confidence >= 70) return 'high'

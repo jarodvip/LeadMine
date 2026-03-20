@@ -64,15 +64,22 @@ services:
           cpus: '1'
           memory: 1G
 
-  # rsshub:
-  #   image: diygod/rsshub:latest
-  #   container_name: leadmine_rsshub
-  #   environment:
-  #     - PORT=1200
-  #     - NODE_ENV=production
-  #   networks:
-  #     - leadmine
-  #   restart: unless-stopped
+  rsshub:
+    image: diygod/rsshub:latest
+    container_name: leadmine_rsshub
+    environment:
+      - PORT=1200
+      - NODE_ENV=production
+    ports:
+      - "1200:1200"
+    networks:
+      - leadmine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   backend:
     build:
