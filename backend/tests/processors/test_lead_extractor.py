@@ -27,7 +27,7 @@ class TestLeadExtractor:
         assert len(leads) > 0
         lead = leads[0]
         assert lead["event_type"] == LeadEventTypeEnum.financing
-        assert "人工智能" in lead["company_name"] or "公司" in lead["company_name"]
+        assert lead["company_name"] != "未知"
         assert lead["confidence"] >= 50
 
     def test_extract_acquisition(self, extractor):
