@@ -31,3 +31,6 @@ ENV/
 # Node
 node_modules/
 dist/
+
+# Worktrees
+.worktrees/
