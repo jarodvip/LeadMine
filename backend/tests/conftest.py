@@ -3,6 +3,7 @@ pytest 配置和通用 fixtures
 """
 
 import os
+from pathlib import Path
 
 # 设置测试环境变量（必须在导入 app 之前）
 os.environ["JWT_SECRET"] = "test-secret-key-for-testing-only-do-not-use-in-production"
@@ -12,12 +13,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 # 导入应用
 import sys
 
-sys.path.insert(0, "/Users/jarod/Dev/new/backend")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.models.models import Base
 from app.core.database import get_db
@@ -28,7 +28,6 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -39,6 +38,7 @@ def db():
     创建测试数据库会话
     每个测试函数执行前创建表，执行后删除表
     """
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
@@ -56,10 +56,12 @@ def client(db):
     """
 
     def override_get_db():
+        session = TestingSessionLocal()
         try:
-            yield db
+            yield session
         finally:
-            pass
+            session.rollback()
+            session.close()
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -96,14 +98,12 @@ def auth_headers(client, test_user):
 
 
 @pytest.fixture
-def admin_user(client):
+def admin_user(client, db):
     """创建管理员用户"""
     # 直接创建管理员（绕过 API 的角色限制）
     from app.models.models import User
     from app.core.security import get_password_hash
-    from sqlalchemy.orm import Session
 
-    db = TestingSessionLocal()
     admin = User(
         username="admin",
         email="admin@example.com",
@@ -114,7 +114,6 @@ def admin_user(client):
     db.add(admin)
     db.commit()
     db.refresh(admin)
-    db.close()
 
     return {"username": "admin", "password": "AdminPass123!"}
 

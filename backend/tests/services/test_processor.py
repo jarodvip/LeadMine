@@ -33,8 +33,8 @@ class TestDataProcessorBasic:
 
             # 检查方法存在
             assert hasattr(processor, "process_pending_articles")
-            assert hasattr(processor, "process_single_article")
-            assert hasattr(processor, "get_stats")
+            assert hasattr(processor, "process_article")
+            assert hasattr(processor, "enrich_lead")
         except ImportError:
             pytest.skip("Processor 未导入")
 

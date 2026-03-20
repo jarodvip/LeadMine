@@ -28,7 +28,7 @@ class TestRSSParser:
         try:
             from app.processors.rss_parser import RSSParser
 
-            parser = RSSParser()
+            parser = RSSParser({"url": "http://test.com/rss", "name": "测试RSS"})
 
             # 由于 feedparser 可能不存在，只测试初始化
             assert parser is not None
