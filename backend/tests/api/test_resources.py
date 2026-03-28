@@ -118,3 +118,28 @@ def test_trigger_crawl_returns_404_or_400_when_invalid_source(client, auth_heade
         f"/api/v1/sources/{disabled_source.id}/crawl", headers=auth_headers
     )
     assert response_disabled.status_code == 400
+
+
+def test_update_source_allows_changing_type(client, auth_headers, db):
+    source = DataSource(
+        name="类型可编辑源",
+        type=SourceTypeEnum.rss,
+        url="https://example.com/source",
+        enabled=True,
+    )
+    db.add(source)
+    db.commit()
+    db.refresh(source)
+
+    response = client.patch(
+        f"/api/v1/sources/{source.id}",
+        json={"type": "wechat"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["type"] == "wechat"
+
+    db.refresh(source)
+    assert source.type == SourceTypeEnum.wechat
