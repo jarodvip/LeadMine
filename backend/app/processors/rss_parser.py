@@ -20,6 +20,10 @@ class RSSParser:
         self.config = source_config
         self.url = source_config.get("url")
         self.source_name = source_config.get("name", "RSS")
+        source_type = source_config.get("type", "rss")
+        if hasattr(source_type, "value"):
+            source_type = source_type.value
+        self.source_type = source_type or "rss"
 
     def fetch(self) -> List[Dict]:
         """获取RSS订阅内容"""
@@ -88,7 +92,7 @@ class RSSParser:
                 "source_name": self.source_name,
                 "source_url": link,
                 "published_at": published_at,
-                "source_type": "rss",
+                "source_type": self.source_type,
             }
 
         except Exception as e:

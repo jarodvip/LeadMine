@@ -4,6 +4,7 @@ RSS Parser 测试 - 提高覆盖率
 
 import pytest
 import os
+from types import SimpleNamespace
 
 # 设置测试环境变量
 os.environ["JWT_SECRET"] = "test-secret-key-for-testing"
@@ -36,31 +37,29 @@ class TestRSSParser:
             pytest.skip("feedparser 未安装")
 
 
-class TestRSSBasic:
-    """基础 RSS 测试"""
 
-    def test_rss_feed_structure(self):
-        """测试 RSS 数据结构"""
-        # 模拟 RSS 条目
-        entry = {
-            "title": "测试标题",
-            "link": "http://test.com/article",
-            "description": "测试描述",
-            "published": "2026-02-20",
-            "author": "测试作者",
+def test_parse_entry_preserves_configured_wechat_source_type():
+    from app.processors.rss_parser import RSSParser
+
+    parser = RSSParser(
+        {
+            "url": "https://rsshub.example.com/wechat/mp/test-account",
+            "name": "微信公众号",
+            "type": "wechat",
         }
+    )
 
-        assert entry["title"] == "测试标题"
-        assert entry["link"] == "http://test.com/article"
+    entry = SimpleNamespace(
+        title="微信文章",
+        summary="<p>摘要</p>",
+        link="https://mp.weixin.qq.com/s/test",
+        published="2026-03-28T10:00:00Z",
+        author="LeadMine",
+    )
 
-    def test_rss_content_extraction(self):
-        """测试内容提取逻辑"""
-        # 测试内容提取的基本逻辑
-        entry = {"content": [{"value": "详细内容"}]}
+    article = parser._parse_entry(entry)
 
-        if "content" in entry and len(entry["content"]) > 0:
-            content = entry["content"][0].get("value", "")
-        else:
-            content = ""
-
-        assert content == "详细内容"
+    assert article is not None
+    assert article["source_type"] == "wechat"
+    assert article["source_name"] == "微信公众号"
+    assert article["source_url"] == "https://mp.weixin.qq.com/s/test"

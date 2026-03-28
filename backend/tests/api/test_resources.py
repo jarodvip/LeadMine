@@ -3,8 +3,15 @@ Resources API 测试
 """
 
 from datetime import datetime, timedelta
+import importlib
+
+from sqlalchemy.orm import sessionmaker
 
 from app.models.models import Article, DataSource, SourceTypeEnum
+
+scheduler_module = importlib.import_module("app.services.scheduler")
+article_service_module = importlib.import_module("app.services.article_service")
+processor_module = importlib.import_module("app.services.processor")
 
 
 def test_get_articles_filters_and_pagination(client, auth_headers, db):
@@ -118,6 +125,67 @@ def test_trigger_crawl_returns_404_or_400_when_invalid_source(client, auth_heade
         f"/api/v1/sources/{disabled_source.id}/crawl", headers=auth_headers
     )
     assert response_disabled.status_code == 400
+
+
+def test_trigger_crawl_supports_wechat_sources_via_scheduler(client, auth_headers, db, monkeypatch):
+    source = DataSource(
+        name="微信源",
+        type=SourceTypeEnum.wechat,
+        url="https://rsshub.example/wechat/mp/channel",
+        enabled=True,
+    )
+    db.add(source)
+    db.commit()
+    db.refresh(source)
+
+    SessionLocal = sessionmaker(bind=db.bind)
+    source_id = source.id
+    source_name = source.name
+
+    fetched_articles = [
+        {
+            "title": "微信公众号文章",
+            "content": "内容",
+            "summary": "摘要",
+            "author": "作者",
+            "source_url": "https://example.com/wechat-article",
+            "published_at": datetime.now(),
+        }
+    ]
+
+    monkeypatch.setattr(scheduler_module.DistributedLock, "acquire", lambda self: True)
+    monkeypatch.setattr(scheduler_module.DistributedLock, "release", lambda self: None)
+    monkeypatch.setattr("app.processors.rss_parser.RSSParser.fetch", lambda self: fetched_articles)
+    monkeypatch.setattr(scheduler_module, "SessionLocal", lambda: SessionLocal())
+    monkeypatch.setattr(article_service_module, "SessionLocal", lambda: SessionLocal())
+    monkeypatch.setattr(
+        processor_module.data_processor,
+        "process_pending_articles",
+        lambda limit=50: {
+            "total": 1,
+            "success": 1,
+            "failed": 0,
+            "duplicates": 0,
+            "leads_extracted": 0,
+        },
+    )
+
+    response = client.post(f"/api/v1/sources/{source_id}/crawl", headers=auth_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source_id"] == source_id
+    assert payload["result"]["status"] == "success"
+    assert payload["result"]["source_name"] == source_name
+    assert payload["result"]["fetched_count"] == 1
+    assert payload["result"]["saved_count"] == 1
+    assert payload["result"]["process_result"] == {
+        "total": 1,
+        "success": 1,
+        "failed": 0,
+        "duplicates": 0,
+        "leads_extracted": 0,
+    }
 
 
 def test_update_source_allows_changing_type(client, auth_headers, db):

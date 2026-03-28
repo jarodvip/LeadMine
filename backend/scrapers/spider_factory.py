@@ -3,10 +3,10 @@
 """
 
 from typing import Dict, List
-from .spiders.kr36 import Kr36Spider, crawl_kr36
-from .spiders.huxiu import HuxiuSpider, crawl_huxiu
-from .spiders.tmt import TMTSpider, crawl_tmt
-from .spiders.cyzone import CyzoneSpider, crawl_cyzone
+from .spiders.kr36 import Kr36Spider
+from .spiders.huxiu import HuxiuSpider
+from .spiders.tmt import TMTSpider
+from .spiders.cyzone import CyzoneSpider
 from app.processors.rss_parser import RSSParser
 import logging
 
@@ -60,8 +60,8 @@ class SpiderFactory:
                 if spider:
                     return spider.fetch_articles()
 
-            # RSS订阅
-            elif source_type == "rss":
+            # RSS订阅 / 微信RSSHub
+            elif source_type in {"rss", "wechat"}:
                 parser = RSSParser(source_config)
                 return parser.fetch()
 

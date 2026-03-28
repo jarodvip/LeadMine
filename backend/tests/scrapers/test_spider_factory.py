@@ -3,7 +3,10 @@
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+from app.models.models import SourceTypeEnum
+from scrapers.spider_factory import SpiderFactory
 
 
 class TestSpiderFactory:
@@ -48,19 +51,39 @@ class TestSpiderFactory:
         articles = SpiderFactory.crawl_source(source)
         assert isinstance(articles, list)
 
-    def test_crawl_source_rss(self):
-        """测试爬取 RSS 源"""
-        from scrapers.spider_factory import SpiderFactory
 
-        source = {
-            "type": "rss",
-            "url": "https://example.com/rss",
-            "name": "RSS测试源",
-            "config": {},
-        }
+def test_crawl_source_routes_wechat_through_rss_parser():
+    source_config = {
+        "name": "微信公众号",
+        "type": SourceTypeEnum.wechat,
+        "url": "https://rsshub.example.com/wechat/mp/test-account",
+    }
+    expected_articles = [{"title": "微信文章", "source_type": "wechat"}]
 
-        articles = SpiderFactory.crawl_source(source)
-        assert isinstance(articles, list)
+    with patch("scrapers.spider_factory.RSSParser") as mock_parser_class:
+        mock_parser = mock_parser_class.return_value
+        mock_parser.fetch.return_value = expected_articles
+
+        result = SpiderFactory.crawl_source(source_config)
+
+    mock_parser_class.assert_called_once_with(source_config)
+    mock_parser.fetch.assert_called_once_with()
+    assert result == expected_articles
+
+
+def test_crawl_source_rss():
+    """测试爬取 RSS 源"""
+    from scrapers.spider_factory import SpiderFactory
+
+    source = {
+        "type": "rss",
+        "url": "https://example.com/rss",
+        "name": "RSS测试源",
+        "config": {},
+    }
+
+    articles = SpiderFactory.crawl_source(source)
+    assert isinstance(articles, list)
 
 
 class TestKr36Spider:
