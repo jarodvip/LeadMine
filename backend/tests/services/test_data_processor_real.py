@@ -1,9 +1,11 @@
 """
 DataProcessor Service 测试
 """
-
+from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import Mock
 
+from app.models.models import LeadEventTypeEnum, LeadGradeEnum
 from app.services.processor import DataProcessor
 
 
@@ -73,9 +75,17 @@ def test_enrich_lead_not_found(monkeypatch):
 
 def test_enrich_lead_success_updates_score(monkeypatch):
     mock_db = Mock()
-    lead = Mock()
-    lead.company_name = "测试公司"
-    lead.enrichment_data = None
+    lead = SimpleNamespace(
+        company_name="测试公司",
+        enrichment_data=None,
+        event_type=LeadEventTypeEnum.financing,
+        event_amount="1亿元",
+        published_at=datetime.now(),
+        event_detail="测试公司完成1亿元融资，计划扩张团队并推进新市场。",
+        score=0,
+        grade=LeadGradeEnum.D,
+        follow_up_hint="",
+    )
     mock_db.query.return_value.filter.return_value.first.return_value = lead
 
     company_info = {"score": 88, "grade": "A", "follow_up_hint": "建议本周联系"}
@@ -90,4 +100,7 @@ def test_enrich_lead_success_updates_score(monkeypatch):
     assert result["enriched"] is True
     assert result["data"] == company_info
     assert lead.enrichment_data == company_info
+    assert result["score"] > 0
+    assert result["grade"] in {LeadGradeEnum.A, LeadGradeEnum.B, LeadGradeEnum.C, LeadGradeEnum.D}
+    assert result["follow_up_hint"]
     mock_db.commit.assert_called_once()
