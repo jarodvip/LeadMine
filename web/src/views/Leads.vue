@@ -53,6 +53,14 @@
         <button class="btn btn-outline btn-sm" @click="resetFilters">重置</button>
       </div>
 
+      <div v-if="selectedCount > 0" class="filter-bar">
+        <span style="color: var(--color-primary); font-weight: 600;">已选择 {{ selectedCount }} 条线索</span>
+        <button class="btn btn-outline btn-sm" @click="handleBatchUpdateStatus">批量更新状态</button>
+        <button class="btn btn-outline btn-sm" @click="handleBatchAssign">批量分配</button>
+        <button class="btn btn-outline btn-sm" @click="handleBatchDelete">批量删除</button>
+        <button class="btn btn-outline btn-sm" @click="clearSelection">取消选择</button>
+      </div>
+
       <!-- 加载状态 -->
       <div v-if="loading" class="loading">
         <div class="spinner"></div>
@@ -64,6 +72,14 @@
           <table>
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    :checked="allVisibleSelected"
+                    :indeterminate.prop="someVisibleSelected && !allVisibleSelected"
+                    @change="toggleSelectAll($event)"
+                  >
+                </th>
                 <th>序号</th>
                 <th>企业名称</th>
                 <th>事件类型</th>
@@ -79,6 +95,13 @@
             </thead>
             <tbody>
               <tr v-for="(lead, index) in leads" :key="lead.id">
+                <td>
+                  <input
+                    type="checkbox"
+                    :checked="selectedLeadIds.includes(lead.id)"
+                    @change="toggleLeadSelection(lead.id, $event.target.checked)"
+                  >
+                </td>
                 <td>{{ (pagination.page - 1) * pagination.page_size + index + 1 }}</td>
                 <td class="company-name">{{ lead.company_name }}</td>
                 <td><span class="type-tag" :class="lead.event_type">{{ getTypeLabel(lead.event_type) }}</span></td>
@@ -104,7 +127,7 @@
                 </td>
               </tr>
               <tr v-if="!leads.length">
-                <td colspan="11" style="text-align: center; padding: 40px; color: var(--color-secondary);">
+                <td colspan="12" style="text-align: center; padding: 40px; color: var(--color-secondary);">
                   暂无数据
                 </td>
               </tr>
@@ -119,10 +142,10 @@
           </div>
           <div class="pagination-btns">
             <button class="page-btn" :disabled="pagination.page <= 1" @click="changePage(pagination.page - 1)">上一页</button>
-            <button 
-              v-for="p in visiblePages" 
-              :key="p" 
-              class="page-btn" 
+            <button
+              v-for="p in visiblePages"
+              :key="p"
+              class="page-btn"
               :class="{ active: p === pagination.page }"
               @click="changePage(p)"
             >
@@ -146,6 +169,7 @@ const route = useRoute()
 
 const loading = ref(true)
 const leads = ref([])
+const selectedLeadIds = ref([])
 const pagination = ref({ page: 1, page_size: 20, total: 0 })
 
 const filters = reactive({
@@ -173,6 +197,12 @@ const statusLabels = {
   invalid: '无效'
 }
 
+const selectedCount = computed(() => selectedLeadIds.value.length)
+const visibleLeadIds = computed(() => leads.value.map(lead => lead.id))
+const visibleLeadIdSet = computed(() => new Set(visibleLeadIds.value))
+const allVisibleSelected = computed(() => visibleLeadIds.value.length > 0 && visibleLeadIds.value.every(id => selectedLeadIds.value.includes(id)))
+const someVisibleSelected = computed(() => visibleLeadIds.value.some(id => selectedLeadIds.value.includes(id)))
+
 const getTypeLabel = (type) => leadTypes[type] || type
 const getStatusLabel = (status) => statusLabels[status] || status
 
@@ -198,15 +228,39 @@ const visiblePages = computed(() => {
   const total = Math.ceil(pagination.value.total / pagination.value.page_size)
   const current = pagination.value.page
   const pages = []
-  
+
   let start = Math.max(1, current - 2)
   let end = Math.min(total, current + 2)
-  
+
   for (let i = start; i <= end; i++) {
     pages.push(i)
   }
   return pages
 })
+
+const clearSelection = () => {
+  selectedLeadIds.value = []
+}
+
+const toggleLeadSelection = (leadId, checked) => {
+  if (checked) {
+    if (!selectedLeadIds.value.includes(leadId)) {
+      selectedLeadIds.value = [...selectedLeadIds.value, leadId]
+    }
+    return
+  }
+
+  selectedLeadIds.value = selectedLeadIds.value.filter(id => id !== leadId)
+}
+
+const toggleSelectAll = (event) => {
+  if (event.target.checked) {
+    selectedLeadIds.value = [...visibleLeadIds.value]
+    return
+  }
+
+  clearSelection()
+}
 
 const fetchLeads = async () => {
   loading.value = true
@@ -215,15 +269,16 @@ const fetchLeads = async () => {
       page: pagination.value.page,
       page_size: pagination.value.page_size
     }
-    
+
     if (filters.status) params.status = filters.status
     if (filters.event_type) params.event_type = filters.event_type
     if (filters.keyword) params.keyword = filters.keyword
     if (filters.start_date) params.start_date = filters.start_date
     if (filters.end_date) params.end_date = filters.end_date
-    
+
     const response = await leadsAPI.getList(params)
     leads.value = response.data.data
+    selectedLeadIds.value = selectedLeadIds.value.filter(id => visibleLeadIdSet.value.has(id))
     pagination.value = {
       page: response.data.page,
       page_size: response.data.page_size,
@@ -248,6 +303,7 @@ const resetFilters = () => {
   filters.start_date = ''
   filters.end_date = ''
   pagination.value.page = 1
+  clearSelection()
   fetchLeads()
 }
 
@@ -257,7 +313,7 @@ const exportLeads = async () => {
     if (filters.status) params.status = filters.status
     if (filters.event_type) params.event_type = filters.event_type
     if (filters.keyword) params.keyword = filters.keyword
-    
+
     const response = await leadsAPI.exportLeads(params)
     const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
@@ -269,9 +325,47 @@ const exportLeads = async () => {
   }
 }
 
+const handleBatchUpdateStatus = async () => {
+  const status = window.prompt('请输入新状态：new、contacted、converted、invalid')
+  if (!status) return
+
+  try {
+    await leadsAPI.batchUpdateStatus(selectedLeadIds.value, status)
+    await fetchLeads()
+    clearSelection()
+  } catch (error) {
+    alert('批量更新状态失败')
+  }
+}
+
+const handleBatchAssign = async () => {
+  const assignedTo = window.prompt('请输入分配对象')
+  if (!assignedTo) return
+
+  try {
+    await leadsAPI.batchAssign(selectedLeadIds.value, assignedTo)
+    await fetchLeads()
+    clearSelection()
+  } catch (error) {
+    alert('批量分配失败')
+  }
+}
+
+const handleBatchDelete = async () => {
+  if (!window.confirm(`确定要删除选中的 ${selectedCount.value} 条线索吗？`)) return
+
+  try {
+    await leadsAPI.batchDelete(selectedLeadIds.value)
+    await fetchLeads()
+    clearSelection()
+  } catch (error) {
+    alert('批量删除失败')
+  }
+}
+
 const deleteLead = async (id) => {
   if (!confirm('确定要删除这条线索吗？')) return
-  
+
   try {
     await leadsAPI.delete(id)
     fetchLeads()
@@ -281,16 +375,13 @@ const deleteLead = async (id) => {
 }
 
 watch(() => route.query.keyword, (newKeyword) => {
-  if (newKeyword) {
-    filters.keyword = newKeyword
-    fetchLeads()
-  }
-}, { immediate: true })
+  filters.keyword = newKeyword || ''
+  pagination.value.page = 1
+  clearSelection()
+  fetchLeads()
+})
 
 onMounted(() => {
-  if (route.query.keyword) {
-    filters.keyword = route.query.keyword
-  }
   fetchLeads()
 })
 </script>
