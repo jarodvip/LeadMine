@@ -160,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Layout from '../components/Layout.vue'
 import { leadsAPI } from '../api'
@@ -317,9 +317,11 @@ const exportLeads = async () => {
     const response = await leadsAPI.exportLeads(params)
     const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
+    const objectUrl = URL.createObjectURL(blob)
+    link.href = objectUrl
     link.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`
     link.click()
+    URL.revokeObjectURL(objectUrl)
   } catch (error) {
     alert('导出失败')
   }
@@ -379,9 +381,5 @@ watch(() => route.query.keyword, (newKeyword) => {
   pagination.value.page = 1
   clearSelection()
   fetchLeads()
-})
-
-onMounted(() => {
-  fetchLeads()
-})
+}, { immediate: true })
 </script>

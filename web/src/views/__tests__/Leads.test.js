@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
+const routeState = vi.hoisted(() => ({
+  query: {}
+}))
+
 const apiMocks = vi.hoisted(() => ({
   getList: vi.fn(),
   batchUpdateStatus: vi.fn(),
@@ -23,7 +27,7 @@ vi.mock('../../api', () => ({
 }))
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} })
+  useRoute: () => routeState
 }))
 
 import Leads from '../Leads.vue'
@@ -76,6 +80,7 @@ const mountLeads = async () => {
 
 describe('Leads batch selection', () => {
   beforeEach(() => {
+    routeState.query = {}
     apiMocks.getList.mockReset()
     apiMocks.batchUpdateStatus.mockReset()
     apiMocks.batchAssign.mockReset()
@@ -88,6 +93,19 @@ describe('Leads batch selection', () => {
         page_size: 20,
         total: sampleLeads.length
       }
+    })
+  })
+
+  it('uses route keyword on initial fetch', async () => {
+    routeState.query = { keyword: '融资' }
+
+    await mountLeads()
+
+    expect(apiMocks.getList).toHaveBeenCalledTimes(1)
+    expect(apiMocks.getList).toHaveBeenNthCalledWith(1, {
+      page: 1,
+      page_size: 20,
+      keyword: '融资'
     })
   })
 
