@@ -173,6 +173,10 @@ class AlertService:
 
     def start(self):
         """启动告警检查调度"""
+        # 检查任务是否已存在，如果存在先移除
+        if self.scheduler.get_job("alert_checker"):
+            self.scheduler.remove_job("alert_checker")
+        
         # 每 5 分钟检查一次
         self.scheduler.add_job(
             self.check_all_rules,
@@ -180,6 +184,7 @@ class AlertService:
             minutes=5,
             id="alert_checker",
             name="告警检查",
+            replace_existing=True,
         )
         self.scheduler.start()
         logger.info("告警服务已启动")
