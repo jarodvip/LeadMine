@@ -34,3 +34,4 @@ dist/
 
 # Worktrees
 .worktrees/
+.env.prod
